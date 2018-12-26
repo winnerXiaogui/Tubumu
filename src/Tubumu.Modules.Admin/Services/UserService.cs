@@ -456,6 +456,7 @@ namespace Tubumu.Modules.Admin.Services
                 return false;
             }
 
+            // TODO: 将短信发送封装为服务
             var client = _clientFactory.CreateClient();
 
             var uri = new Uri("https://api.submail.cn/message/xsend.json");
@@ -464,7 +465,7 @@ namespace Tubumu.Modules.Admin.Services
                 // TODO: 改为从配置文件读取
 		        new KeyValuePair<string, string>("appid", "15360"),
                 new KeyValuePair<string, string>("project", "5Ijl32"),
-                new KeyValuePair<string, string>("signature", "896a792310a02131f46a11774d37aa01"),
+                new KeyValuePair<string, string>("signature", "xxxxxxxx"),
                 new KeyValuePair<string, string>("to", getMobileValidationCodeInput.Mobile),
                 new KeyValuePair<string, string>("vars", "{\"code\":\""+ code +"\",\"time\":\""+ UserRepository.MobileValidationCodeExpirationInterval +"\"}"),
             });
