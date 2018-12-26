@@ -22,3 +22,9 @@
 
 > 测试账号：system, admin
 > 测试密码：111111
+
+## 已知问题
+
+1. CKFinder 不可用。尝试集成 RoxyFileman 但有些问题。
+2. Remote 验证邮箱、用户名或手机是否存在尚未移植完成。
+3. Cors 尚未测试。
