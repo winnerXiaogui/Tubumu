@@ -10,6 +10,7 @@ using Tubumu.Modules.Admin.Models.InputModels;
 using Tubumu.Modules.Admin.Repositories;
 using Tubumu.Modules.Framework.Extensions;
 using Tubumu.Modules.Framework.Models;
+using Tubumu.Modules.Framework.Services;
 
 namespace Tubumu.Modules.Admin.Services
 {
@@ -61,22 +62,19 @@ namespace Tubumu.Modules.Admin.Services
     public class UserService : IUserService
     {
         private readonly IDistributedCache _cache;
-        private readonly IHttpClientFactory _clientFactory;
         private readonly IUserRepository _repository;
         private readonly IGroupService _groupService;
+        private readonly ISmsSender _smsSender;
 
         private const string UserCacheKeyFormat = "User:{0}";
 
-        public UserService(IDistributedCache cache
-            , IHttpClientFactory clientFactory
-            , IUserRepository repository
-            , IGroupService groupService
+        public UserService(IDistributedCache cache, IUserRepository repository, IGroupService groupService, ISmsSender smsSender
             )
         {
             _cache = cache;
-            _clientFactory = clientFactory;
             _repository = repository;
             _groupService = groupService;
+            _smsSender = smsSender;
         }
 
         #region IUserService Members
@@ -456,31 +454,7 @@ namespace Tubumu.Modules.Admin.Services
                 return false;
             }
 
-            // TODO: 将短信发送封装为服务
-            var client = _clientFactory.CreateClient();
-
-            var uri = new Uri("https://api.submail.cn/message/xsend.json");
-            var httpContent = new FormUrlEncodedContent(new[]
-            {
-                // TODO: 改为从配置文件读取
-		        new KeyValuePair<string, string>("appid", "15360"),
-                new KeyValuePair<string, string>("project", "5Ijl32"),
-                new KeyValuePair<string, string>("signature", "xxxxxxxx"),
-                new KeyValuePair<string, string>("to", getMobileValidationCodeInput.Mobile),
-                new KeyValuePair<string, string>("vars", "{\"code\":\""+ code +"\",\"time\":\""+ UserRepository.MobileValidationCodeExpirationInterval +"\"}"),
-            });
-            try
-            {
-                var response = await client.PostAsync(uri, httpContent);
-                var content = await response.Content.ReadAsStringAsync();
-                // TODO: 检查短信发送结果
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-
-            return true;
+            return await _smsSender.SendAsync(getMobileValidationCodeInput.Mobile, code, UserRepository.MobileValidationCodeExpirationInterval.ToString());
         }
         public async Task<bool> VerifyMobileValidationCodeAsync(VerifyMobileValidationCodeInput verifyMobileValidationCodeInput, ModelStateDictionary modelState, string defaultCode = null)
         {

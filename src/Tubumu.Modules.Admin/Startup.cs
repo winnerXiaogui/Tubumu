@@ -14,6 +14,7 @@ using Tubumu.Modules.Admin.ModuleMenus;
 using Tubumu.Modules.Admin.Repositories;
 using Tubumu.Modules.Admin.Services;
 using Tubumu.Modules.Framework.Authorization;
+using Tubumu.Modules.Framework.Services;
 
 namespace Tubumu.Modules.Admin
 {
@@ -52,6 +53,7 @@ namespace Tubumu.Modules.Admin
             services.AddScoped<IUserRepository, UserRepository>();
             
             // Services
+            services.AddScoped<ISmsSender, SubMailSmsSender>();
             services.AddScoped<IBulletinService, BulletinService>();
             services.AddScoped<IGroupService, GroupService>();
             services.AddScoped<INotificationService, NotificationService>();

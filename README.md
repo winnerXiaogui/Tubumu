@@ -9,7 +9,9 @@
 3. Redis
 4. Jwt
 5. Swagger
-6. Vue
+6. SignalR
+7. AutoMapping
+8. Vue
 
 ## 安装
 
