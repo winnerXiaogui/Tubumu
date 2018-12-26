@@ -16,7 +16,7 @@
 1. 安装 [Redis](https://github.com/MicrosoftArchive/redis/releases)
 2. 还原数据库：src\Database\Tubumu.bak
 3. 打开解决方案
-4. 在 app.settings 中修改数据库连接字符串
+4. 在 appsettings.json 中修改数据库连接字符串
 5. 运行
 6. 请求：<http://localhost:5000/>
 
