@@ -23,10 +23,6 @@ namespace Tubumu.Web
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
-                .Configure(configureApp =>
-                {
-                   var t = configureApp.ApplicationServices;
-                })
                 .UseStartup<Startup>();
     }
 }
