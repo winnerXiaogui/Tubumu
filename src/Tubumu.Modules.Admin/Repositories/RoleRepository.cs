@@ -90,7 +90,9 @@ namespace Tubumu.Modules.Admin.Repositories
             Role roleToSave;
             if (roleInput.RoleId.HasValue)
             {
-                roleToSave = await _tubumuContext.Role.FirstOrDefaultAsync(m => m.RoleId == roleInput.RoleId.Value);
+                roleToSave = await _tubumuContext.Role.
+                    Include(m=>m.RolePermission).
+                    FirstOrDefaultAsync(m => m.RoleId == roleInput.RoleId.Value);
                 if (roleToSave == null)
                 {
                     modelState.AddModelError("RoleId", "尝试编辑不存在的记录");

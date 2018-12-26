@@ -58,14 +58,14 @@ namespace Tubumu.Modules.Admin.Repositories
                             DisplayOrder = r.Role.DisplayOrder
                         },
                 AvailableRoles = from r in ug.GroupAvailableRole
-                             orderby r.Role.DisplayOrder
-                             select new XM.RoleBase
-                             {
-                                 RoleId = r.RoleId,
-                                 Name = r.Role.Name,
-                                 IsSystem = r.Role.IsSystem,
-                                 DisplayOrder = r.Role.DisplayOrder
-                             },
+                                 orderby r.Role.DisplayOrder
+                                 select new XM.RoleBase
+                                 {
+                                     RoleId = r.RoleId,
+                                     Name = r.Role.Name,
+                                     IsSystem = r.Role.IsSystem,
+                                     DisplayOrder = r.Role.DisplayOrder
+                                 },
                 Permissions = from p in ug.GroupPermission
                               orderby p.Permission.DisplayOrder
                               select new XM.PermissionBase
@@ -180,7 +180,11 @@ namespace Tubumu.Modules.Admin.Repositories
                     return false;
                 }
 
-                groupToSave = await _tubumuContext.Group.FirstOrDefaultAsync(m => m.GroupId == groupInput.GroupId.Value);
+                groupToSave = await _tubumuContext.Group.
+                    Include(m => m.GroupAvailableRole).
+                    Include(m => m.GroupRole).
+                    Include(m => m.GroupPermission).
+                    FirstOrDefaultAsync(m => m.GroupId == groupInput.GroupId.Value);
                 if (groupToSave == null)
                 {
                     modelState.AddModelError("GroupId", "尝试编辑不存在的记录");
@@ -245,7 +249,7 @@ namespace Tubumu.Modules.Admin.Repositories
 
                 #endregion
             }
-            else if(groupInput.ParentId != groupToSave.ParentId)
+            else if (groupInput.ParentId != groupToSave.ParentId)
             {
                 //如果父节点不改变，则仅仅保存数据就行了。下面处理的是父节点改变了的情况
                 //如果父节点改变(从无父节点到有父节点，从有父节点到无父节点，从一个父节点到另一个父节点)
@@ -395,8 +399,8 @@ namespace Tubumu.Modules.Admin.Repositories
                 if (!groupInput.RoleIds.IsNullOrEmpty())
                 {
                     List<GroupRole> roleToRemove = (from p in groupToSave.GroupRole
-                                               where !groupInput.RoleIds.Contains(p.RoleId)
-                                               select p).ToList();
+                                                    where !groupInput.RoleIds.Contains(p.RoleId)
+                                                    select p).ToList();
                     for (int i = 0; i < roleToRemove.Count; i++)
                         groupToSave.GroupRole.Remove(roleToRemove[i]);
                 }
@@ -413,11 +417,11 @@ namespace Tubumu.Modules.Admin.Repositories
 
                 // 要添加的项
                 List<GroupRole> roleToAdd = await (from p in _tubumuContext.Role
-                                              where roleIdToAdd.Contains(p.RoleId)
-                                              select new GroupRole
-                                              {
-                                                  Role = p
-                                              }).ToListAsync();
+                                                   where roleIdToAdd.Contains(p.RoleId)
+                                                   select new GroupRole
+                                                   {
+                                                       Role = p
+                                                   }).ToListAsync();
                 foreach (var item in roleToAdd)
                     groupToSave.GroupRole.Add(item);
 
@@ -431,8 +435,8 @@ namespace Tubumu.Modules.Admin.Repositories
                 if (!groupInput.AvailableRoleIds.IsNullOrEmpty())
                 {
                     List<GroupAvailableRole> roleToRemove = (from p in groupToSave.GroupAvailableRole
-                                               where !groupInput.AvailableRoleIds.Contains(p.RoleId)
-                                               select p).ToList();
+                                                             where !groupInput.AvailableRoleIds.Contains(p.RoleId)
+                                                             select p).ToList();
                     for (int i = 0; i < roleToRemove.Count; i++)
                         groupToSave.GroupAvailableRole.Remove(roleToRemove[i]);
                 }
@@ -449,11 +453,12 @@ namespace Tubumu.Modules.Admin.Repositories
 
                 // 要添加的项
                 List<GroupAvailableRole> roleToAdd = await (from p in _tubumuContext.Role
-                                              where roleIdToAdd.Contains(p.RoleId)
-                                              select new GroupAvailableRole
-                                              {
-                                                  Role = p
-                                              }).ToListAsync();
+                                                            where roleIdToAdd.Contains(p.RoleId)
+                                                            select new GroupAvailableRole
+                                                            {
+
+                                                                Role = p
+                                                            }).ToListAsync();
                 foreach (var item in roleToAdd)
                     groupToSave.GroupAvailableRole.Add(item);
 
@@ -467,8 +472,8 @@ namespace Tubumu.Modules.Admin.Repositories
                 if (!groupInput.PermissionIds.IsNullOrEmpty())
                 {
                     List<GroupPermission> permissionToRemove = (from p in groupToSave.GroupPermission
-                                                           where !groupInput.PermissionIds.Contains(p.PermissionId)
-                                                           select p).ToList();
+                                                                where !groupInput.PermissionIds.Contains(p.PermissionId)
+                                                                select p).ToList();
                     for (int i = 0; i < permissionToRemove.Count; i++)
                         groupToSave.GroupPermission.Remove(permissionToRemove[i]);
                 }
@@ -487,11 +492,11 @@ namespace Tubumu.Modules.Admin.Repositories
 
                 // 要添加的项
                 List<GroupPermission> permissionToAdd = await (from p in _tubumuContext.Permission
-                                                          where permissionIdToAdd.Contains(p.PermissionId)
-                    select new GroupPermission
-                    {
-                        Permission = p
-                    }).ToListAsync();
+                                                               where permissionIdToAdd.Contains(p.PermissionId)
+                                                               select new GroupPermission
+                                                               {
+                                                                   Permission = p
+                                                               }).ToListAsync();
                 foreach (var item in permissionToAdd)
                     groupToSave.GroupPermission.Add(item);
 

@@ -24,7 +24,7 @@ namespace Tubumu.Modules.Admin.Models
     {
         [JsonProperty(PropertyName = "groups")]
         public IEnumerable<GroupInfo> Groups { get; set; }
-        //[JsonConverter(typeof(Tubumu.Modules.Framework.ActionResults.DependencyJsonConverterGuid), "RoleId", "00000000-0000-0000-0000-000000000000")]
+        [JsonConverter(typeof(Tubumu.Modules.Framework.ActionResults.DependencyJsonConverterGuid), "RoleId", "00000000-0000-0000-0000-000000000000")]
         [JsonProperty(PropertyName = "role")]
         public RoleInfo Role { get; set; }
     }
@@ -79,7 +79,7 @@ namespace Tubumu.Modules.Admin.Models
         public GroupInfo Group { get; set; } // Group 比较常用，故放在基类中
         public IEnumerable<GroupInfo> Groups { get; set; }
 
-        //[JsonConverter(typeof(Tubumu.Modules.Framework.ActionResults.DependencyJsonConverterGuid), "RoleId", "00000000-0000-0000-0000-000000000000")]
+        [JsonConverter(typeof(Tubumu.Modules.Framework.ActionResults.DependencyJsonConverterGuid), "RoleId", "00000000-0000-0000-0000-000000000000")]
         public RoleInfo Role { get; set; }
 
         public string FullDisplayName

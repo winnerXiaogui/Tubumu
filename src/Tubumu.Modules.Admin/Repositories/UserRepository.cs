@@ -549,7 +549,11 @@ namespace Tubumu.Modules.Admin.Repositories
             User userToSave;
             if (userInput.UserId.HasValue)
             {
-                userToSave = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userInput.UserId.Value);
+                userToSave = await _tubumuContext.User.
+                    Include(m=>m.UserGroup).
+                    Include(m=>m.UserRole).
+                    Include(m=>m.UserPermission).
+                    FirstOrDefaultAsync(m => m.UserId == userInput.UserId.Value);
                 if (userToSave == null)
                 {
                     modelState.AddModelError("UserId", "尝试编辑不存在的记录");
@@ -570,7 +574,7 @@ namespace Tubumu.Modules.Admin.Repositories
                 userToSave.CreationDate = DateTime.Now;
             }
 
-            var group = await _tubumuContext.Group.FirstOrDefaultAsync(m => m.GroupId == userInput.GroupId);
+            var group = await _tubumuContext.Group.Include(m=>m.GroupAvailableRole).FirstOrDefaultAsync(m => m.GroupId == userInput.GroupId);
             if (group == null)
             {
                 modelState.AddModelError("GroupId", "分组不存在");
@@ -637,8 +641,8 @@ namespace Tubumu.Modules.Admin.Repositories
                                                     }).ToListAsync();
                 foreach (var item in groupToAdd)
                     userToSave.UserGroup.Add(item);
-
             }
+
             #endregion
 
             #region 用户角色

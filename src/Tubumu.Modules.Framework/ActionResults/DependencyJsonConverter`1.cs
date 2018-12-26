@@ -21,7 +21,14 @@ namespace Tubumu.Modules.Framework.ActionResults
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            throw new NotImplementedException();
+            try
+            {
+                return serializer.Deserialize(reader, objectType);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

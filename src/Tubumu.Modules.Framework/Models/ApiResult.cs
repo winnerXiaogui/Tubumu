@@ -47,7 +47,6 @@ namespace Tubumu.Modules.Framework.Models
 
     public class ApiItemResult : ApiResult
     {
-        // [JsonConverter(typeof(Tubumu.Modules.Framework.ActionResults.DependencyJsonConverterGuid), "IsShow", "00000000-0000-0000-0000-000000000000")]
         [JsonProperty(PropertyName = "item", NullValueHandling = NullValueHandling.Ignore)]
         public object Item { get; set; }
     }
