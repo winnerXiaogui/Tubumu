@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
-    <TypeScriptToolsVersion>3.1</TypeScriptToolsVersion>
+    <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,8 +11,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.App" Version="2.2.0" />
-    <PackageReference Include="OrchardCore" Version="1.0.0-beta3-70172" />
-    <PackageReference Include="OrchardCore.Application.Mvc.Targets" Version="1.0.0-beta3-70172" />
+    <PackageReference Include="OrchardCore" Version="1.0.0-beta3-70302" />
+    <PackageReference Include="OrchardCore.Application.Mvc.Targets" Version="1.0.0-beta3-70302" />
   </ItemGroup>
 
   <ItemGroup>

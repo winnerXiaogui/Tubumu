@@ -18,7 +18,7 @@
 3. 打开解决方案
 4. 在 appsettings.json 中修改数据库连接字符串
 5. 运行
-6. 请求：<http://localhost:5000/>
+6. 请求：<http://localhost:5000/Login>
 
 > 测试账号：system, admin
 > 测试密码：111111
