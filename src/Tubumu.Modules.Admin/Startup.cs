@@ -53,7 +53,7 @@ namespace Tubumu.Modules.Admin
             services.AddScoped<IUserRepository, UserRepository>();
             
             // Services
-            services.AddScoped<ISmsSender, SubMailSmsSender>();
+            services.AddSingleton<ISmsSender, SubMailSmsSender>();
             services.AddScoped<IBulletinService, BulletinService>();
             services.AddScoped<IGroupService, GroupService>();
             services.AddScoped<INotificationService, NotificationService>();
