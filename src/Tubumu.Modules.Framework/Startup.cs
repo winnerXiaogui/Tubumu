@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using OrchardCore.Modules;
 using Swashbuckle.AspNetCore.Swagger;
@@ -32,13 +33,15 @@ namespace Tubumu.Modules.Framework
     {
         private readonly IConfiguration _configuration;
         private readonly IHostingEnvironment _environment;
-
+        private readonly ILogger<Startup> _logger;
         public Startup(
             IConfiguration configuration,
-            IHostingEnvironment environment)
+            IHostingEnvironment environment,
+            ILogger<Startup> logger)
         {
             _configuration = configuration;
             _environment = environment;
+            _logger = logger;
         }
 
         public override void ConfigureServices(IServiceCollection services)
@@ -128,6 +131,16 @@ namespace Tubumu.Modules.Framework
                                 // Read the token out of the query string
                                 context.Token = accessToken;
                             }
+                            return Task.CompletedTask;
+                        },
+                        OnAuthenticationFailed = context =>
+                        {
+                            _logger.LogError($"Authentication Failed(OnAuthenticationFailed): {context.Request.Path} Error: {context.Exception}");
+                            return Task.CompletedTask;
+                        },
+                        OnChallenge = context =>
+                        {
+                            _logger.LogError($"Authentication Challenge(OnChallenge): {context.Request.Path}");
                             return Task.CompletedTask;
                         }
                     };

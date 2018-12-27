@@ -41,7 +41,7 @@ namespace Tubumu.Modules.Admin
                 options.UseSqlServer(_configuration.GetConnectionString("Tubumu")).ConfigureWarnings(warnings =>
                 {
                     warnings.Throw(CoreEventId.IncludeIgnoredWarning);
-                    warnings.Throw(RelationalEventId.QueryClientEvaluationWarning);
+                    //warnings.Throw(RelationalEventId.QueryClientEvaluationWarning);
                 }));
         
             // Repositories
