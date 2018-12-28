@@ -42,7 +42,7 @@ namespace Tubumu.Modules.Framework.ActionResults
             var propertyInfo = value.GetType().GetProperty(_propertyName);
             var accessor = FastReflectionCaches.PropertyAccessorCache.Get(propertyInfo);
 
-            IEquatable<T> pValue = (IEquatable<T>)accessor.GetValue(value);
+            var pValue = (IEquatable<T>)accessor.GetValue(value);
             if (pValue.Equals(_equalValue))
             {
                 writer.WriteNull();

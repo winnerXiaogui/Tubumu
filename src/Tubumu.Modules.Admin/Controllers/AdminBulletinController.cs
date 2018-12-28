@@ -1,38 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Reflection.Emit;
-using System.Security.Claims;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Protocols;
-using Tubumu.Modules.Admin.Entities;
-using Tubumu.Modules.Admin.Models;
-using Tubumu.Modules.Admin.Models.Api;
 using Tubumu.Modules.Admin.Models.InputModels;
-using Tubumu.Modules.Admin.Services;
 using Tubumu.Modules.Framework.Authorization;
 using Tubumu.Modules.Framework.Extensions;
-using Tubumu.Modules.Framework.Extensions.Object;
 using Tubumu.Modules.Framework.Models;
-using Tubumu.Modules.Framework.Swagger;
-using Tubumu.Modules.Framework.Utilities.Security;
-using Group = Tubumu.Modules.Admin.Models.Group;
-using Permission = Tubumu.Modules.Admin.Models.Permission;
 
 namespace Tubumu.Modules.Admin.Controllers
 {
     /// <summary>
     /// 后台 Controller
     /// </summary>
-    public partial class AdminController : ControllerBase
+    public partial class AdminController
     {
         #region 系统公告
 
