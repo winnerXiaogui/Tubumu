@@ -33,6 +33,10 @@ namespace Tubumu.Modules.Admin.Controllers
 
         #region  Login
 
+        /// <summary>
+        /// 获取验证码
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         [Route("GetValidationCode")]
         [AllowAnonymous]
@@ -44,6 +48,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return File(bytes, @"image/png");
         }
 
+        /// <summary>
+        /// 登录
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("Login")]
         [AllowAnonymous]
@@ -102,6 +111,10 @@ namespace Tubumu.Modules.Admin.Controllers
 
         #region  Logout
 
+        /// <summary>
+        /// 注销
+        /// </summary>
+        /// <returns></returns>
         [HttpPost("Logout")]
         public ApiResult Logout()
         {

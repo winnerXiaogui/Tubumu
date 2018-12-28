@@ -34,6 +34,11 @@ namespace Tubumu.Modules.Admin.Controllers
 
         #region 用户
 
+        /// <summary>
+        /// 获取用户列表
+        /// </summary>
+        /// <param name="criteria"></param>
+        /// <returns></returns>
         [HttpPost("GetUsers")]
         [PermissionAuthorize(Permissions = "用户管理")]
         public async Task<ApiPageResult> GetUsers([FromBody]UserSearchCriteria criteria)
@@ -47,6 +52,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 添加用户
+        /// </summary>
+        /// <param name="userInput"></param>
+        /// <returns></returns>
         [HttpPost("AddUser")]
         [PermissionAuthorize(Permissions = "用户管理")]
         public async Task<ApiResult> AddUser([FromBody]UserInputAdd userInput)
@@ -72,6 +82,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 编辑用户
+        /// </summary>
+        /// <param name="userInput"></param>
+        /// <returns></returns>
         [HttpPost("EditUser")]
         [PermissionAuthorize(Permissions = "用户管理")]
         public async Task<ApiResult> EditUser([FromBody]UserInputEdit userInput)
@@ -103,6 +118,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 删除用户
+        /// </summary>
+        /// <param name="userIdInput"></param>
+        /// <returns></returns>
         [HttpPost("RemoveUser")]
         [PermissionAuthorize(Permissions = "用户管理")]
         public async Task<ApiResult> RemoveUser([FromBody]UserIdInput userIdInput)
@@ -124,6 +144,10 @@ namespace Tubumu.Modules.Admin.Controllers
 
         #region 分组
 
+        /// <summary>
+        /// 获取分组列表
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetGroups")]
         [PermissionAuthorize(Permissions = "分组管理")]
         public async Task<ApiListResult> GetGroups()
@@ -140,6 +164,10 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 获取分组树
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetGroupTree")]
         [PermissionAuthorize(Permissions = "分组管理")]
         public async Task<GroupTreeResult> GetGroupTree()
@@ -167,6 +195,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 添加分组
+        /// </summary>
+        /// <param name="groupInput"></param>
+        /// <returns></returns>
         [HttpPost("AddGroup")]
         [PermissionAuthorize(Permissions = "分组管理")]
         public async Task<ApiResult> AddGroup([FromBody]GroupInput groupInput)
@@ -191,6 +224,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 编辑分组
+        /// </summary>
+        /// <param name="groupInput"></param>
+        /// <returns></returns>
         [HttpPost("EditGroup")]
         [PermissionAuthorize(Permissions = "分组管理")]
         public async Task<ApiResult> EditGroup([FromBody]GroupInput groupInput)
@@ -215,6 +253,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 删除分组
+        /// </summary>
+        /// <param name="groupIdInput"></param>
+        /// <returns></returns>
         [HttpPost("RemoveGroup")]
         [PermissionAuthorize(Permissions = "分组管理")]
         public async Task<ApiResult> RemoveGroup([FromBody]GroupIdInput groupIdInput)
@@ -235,6 +278,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 移动分组(排序)
+        /// </summary>
+        /// <param name="moveGroupInput"></param>
+        /// <returns></returns>
         [HttpPost("MoveGroup")]
         [PermissionAuthorize(Permissions = "分组管理")]
         public async Task<ApiResult> MoveGroup(MoveGroupInput moveGroupInput)
@@ -259,6 +307,10 @@ namespace Tubumu.Modules.Admin.Controllers
 
         #region 角色管理
 
+        /// <summary>
+        /// 获取角色列表
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetRoles")]
         public async Task<ApiListResult> GetRoles()
         {
@@ -273,6 +325,10 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 获取角色列表
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetRoleBases")]
         public async Task<ApiListResult> GetRoleBases()
         {
@@ -287,6 +343,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 保存角色名称
+        /// </summary>
+        /// <param name="saveRoleNameInput"></param>
+        /// <returns></returns>
         [HttpPost("SaveRoleName")]
         [PermissionAuthorize(Permissions = "角色管理")]
         public async Task<ApiResult> SaveRoleName([FromBody]SaveRoleNameInput saveRoleNameInput)
@@ -306,6 +367,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 编辑角色
+        /// </summary>
+        /// <param name="roleInput"></param>
+        /// <returns></returns>
         [HttpPost("EditRole")]
         [PermissionAuthorize(Permissions = "角色管理")]
         public async Task<ApiItemResult> EditRole([FromBody]RoleInput roleInput)
@@ -339,6 +405,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 添加角色
+        /// </summary>
+        /// <param name="roleInput"></param>
+        /// <returns></returns>
         [HttpPost("AddRole")]
         [PermissionAuthorize(Permissions = "角色管理")]
         public async Task<ApiItemResult> AddRole([FromBody]RoleInput roleInput)
@@ -365,6 +436,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 删除角色
+        /// </summary>
+        /// <param name="roleIdInput"></param>
+        /// <returns></returns>
         [HttpPost("RemoveRole")]
         [PermissionAuthorize(Permissions = "角色管理")]
         public async Task<ApiResult> RemoveRole([FromBody]RoleIdInput roleIdInput)
@@ -385,6 +461,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 移动角色(排序)
+        /// </summary>
+        /// <param name="moveRoleInput"></param>
+        /// <returns></returns>
         [HttpPost("MoveRole")]
         [PermissionAuthorize(Permissions = "角色管理")]
         public async Task<ApiResult> MoveRole([FromBody]MoveRoleInput moveRoleInput)
@@ -409,6 +490,10 @@ namespace Tubumu.Modules.Admin.Controllers
 
         #region 权限管理
 
+        /// <summary>
+        /// 获取权限树
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetPermissionTree")]
         public async Task<ApiTreeResult> GetPermissionTree()
         {
@@ -442,6 +527,10 @@ namespace Tubumu.Modules.Admin.Controllers
 
         #region 用户状态
 
+        /// <summary>
+        /// 获取用户状态
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetUserStatus")]
         public ApiListResult GetUserStatus()
         {

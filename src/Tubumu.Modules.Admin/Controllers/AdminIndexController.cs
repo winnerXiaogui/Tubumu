@@ -31,6 +31,10 @@ namespace Tubumu.Modules.Admin.Controllers
 
         #region Index
 
+        /// <summary>
+        /// 获取资料
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetProfile")]
         public async Task<ApiItemResult> GetProfile()
         {
@@ -65,6 +69,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 修改资料
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         [HttpPost("ChangeProfile")]
         public async Task<ApiResult> ChangeProfile([FromBody]UserChangeProfileInput input)
         {
@@ -89,6 +98,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 修改密码
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         [HttpPost("ChangePassword")]
         public async Task<ApiResult> ChangePassword([FromBody]UserChangePasswordInput input)
         {
@@ -113,6 +127,10 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 获取菜单
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetMenus")]
         public ApiListResult GetMenus()
         {

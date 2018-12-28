@@ -32,6 +32,10 @@ namespace Tubumu.Modules.Admin.Controllers
 
         #region 模块权限管理
 
+        /// <summary>
+        /// 获取模块权限列表
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetModulePermissions")]
         public async Task<ApiListResult> GetModulePermissions()
         {
@@ -47,6 +51,10 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 提取模块权限
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("ExtractModulePermissions")]
         [PermissionAuthorize(Permissions = "提取权限")]
         public async Task<object> ExtractModulePermissions()
@@ -79,6 +87,10 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 清理模块权限
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("ClearModulePermissions")]
         [PermissionAuthorize(Permissions = "清理权限")]
         public async Task<object> ClearModulePermissions()

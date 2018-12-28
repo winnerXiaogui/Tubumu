@@ -31,6 +31,11 @@ namespace Tubumu.Modules.Admin.Controllers
     {
         #region 通知
 
+        /// <summary>
+        /// 获取通知列表
+        /// </summary>
+        /// <param name="criteria"></param>
+        /// <returns></returns>
         [HttpPost("GetNotifications")]
         public async Task<ApiResult> GetNotifications([FromBody]NotificationSearchCriteria criteria)
         {
@@ -46,6 +51,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 设置通知已读
+        /// </summary>
+        /// <param name="notificationIdListInput"></param>
+        /// <returns></returns>
         [HttpPost("ReadNotifications")]
         public async Task<ApiResult> ReadNotifications([FromBody]NotificationIdListInput notificationIdListInput)
         {
@@ -63,6 +73,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 删除通知
+        /// </summary>
+        /// <param name="notificationIdListInput"></param>
+        /// <returns></returns>
         [HttpPost("DeleteNotifications")]
         public async Task<ApiResult> DeleteNotifications([FromBody]NotificationIdListInput notificationIdListInput)
         {
@@ -80,6 +95,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 获取最新通知
+        /// </summary>
+        /// <param name="currentNotificationId"></param>
+        /// <returns></returns>
         [HttpPost("GetNewestNotification")]
         public async Task<ApiItemResult> GetNewestNotification(int? currentNotificationId)
         {

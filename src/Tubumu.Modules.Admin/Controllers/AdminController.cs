@@ -35,6 +35,20 @@ namespace Tubumu.Modules.Admin.Controllers
         private readonly IEnumerable<IMenuProvider> _menuProviders;
 
         // /Api/Admin/{action}
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="tokenValidationSettings"></param>
+        /// <param name="frontendSettingsOptions"></param>
+        /// <param name="userService"></param>
+        /// <param name="adminUserService"></param>
+        /// <param name="notificationService"></param>
+        /// <param name="permissionService"></param>
+        /// <param name="groupService"></param>
+        /// <param name="roleService"></param>
+        /// <param name="bulletinService"></param>
+        /// <param name="permissionProviders"></param>
+        /// <param name="menuProviders"></param>
         public AdminController(
             TokenValidationSettings tokenValidationSettings, 
             IOptions<FrontendSettings> frontendSettingsOptions,

@@ -9,6 +9,9 @@ using Tubumu.Modules.Framework.Extensions;
 
 namespace Tubumu.Modules.Admin.Controllers
 {
+    /// <summary>
+    /// 视图 Controller
+    /// </summary>
     public class ViewController : Controller
     {
         private readonly string ProductionCoreTemplate = "<!DOCTYPE html>" +
@@ -72,11 +75,19 @@ namespace Tubumu.Modules.Admin.Controllers
 
         private readonly FrontendSettings _frontendSettings;
 
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="frontendSettingsOptions"></param>
         public ViewController(IOptions<FrontendSettings> frontendSettingsOptions)
         {
             _frontendSettings = frontendSettingsOptions.Value;
         }
 
+        /// <summary>
+        /// 登录
+        /// </summary>
+        /// <returns></returns>
         public ActionResult Login()
         {
             HttpContext.Session.SetString("bbb", "123");
@@ -88,6 +99,10 @@ namespace Tubumu.Modules.Admin.Controllers
             }), "text/html");
         }
 
+        /// <summary>
+        /// 首页
+        /// </summary>
+        /// <returns></returns>
         public ActionResult Index()
         {
             return Content(GenerateHtml(new ViewInput
@@ -99,6 +114,11 @@ namespace Tubumu.Modules.Admin.Controllers
             }), "text/html");
         }
 
+        /// <summary>
+        /// 视图
+        /// </summary>
+        /// <param name="viewInput"></param>
+        /// <returns></returns>
         public ActionResult View(ViewInput viewInput)
         {
             return Content(GenerateHtml(viewInput), "text/html");

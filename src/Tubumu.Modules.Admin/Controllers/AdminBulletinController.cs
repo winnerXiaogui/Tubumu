@@ -29,10 +29,17 @@ using Permission = Tubumu.Modules.Admin.Models.Permission;
 
 namespace Tubumu.Modules.Admin.Controllers
 {
+    /// <summary>
+    /// 后台 Controller
+    /// </summary>
     public partial class AdminController : ControllerBase
     {
         #region 系统公告
 
+        /// <summary>
+        /// 获取系统公告
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetBulletin")]
         [PermissionAuthorize(Permissions = "系统公告")]
         public async Task<ApiItemResult> GetBulletin()
@@ -49,6 +56,11 @@ namespace Tubumu.Modules.Admin.Controllers
             return result;
         }
 
+        /// <summary>
+        /// 编辑系统公告
+        /// </summary>
+        /// <param name="bulletinInput"></param>
+        /// <returns></returns>
         [HttpPost("EditBulletin")]
         [PermissionAuthorize(Permissions = "系统公告")]
         public async Task<ApiResult> EditBulletin([FromBody]BulletinInput bulletinInput)
