@@ -4,7 +4,7 @@ using Tubumu.Modules.Framework.ModelValidation.Attributes;
 
 namespace Tubumu.Modules.Admin.Models.InputModels
 {
-    public class AccountPasswordValidationCodeInput
+    public class AccountPasswordValidationCodeLoginInput
     {
         [Required(ErrorMessage = "请输入账号")]
         [SlugWithMobileEmail(ErrorMessage = "请输入合法的账号")]
@@ -23,7 +23,7 @@ namespace Tubumu.Modules.Admin.Models.InputModels
         public string ValidationCode { get; set; }
     }
 
-    public class AccountPasswordInput
+    public class AccountPasswordLoginInput
     {
         [Required(ErrorMessage = "请输入账号")]
         [SlugWithMobileEmail(ErrorMessage = "请输入合法的账号")]
@@ -38,4 +38,29 @@ namespace Tubumu.Modules.Admin.Models.InputModels
         public string Password { get; set; }
     }
 
+    public class MobileValidationCodeLoginInput
+    {
+        [Required(ErrorMessage = "请输入手机号")]
+        [ChineseMobile(ErrorMessage = "请输入合法的手机号")]
+        [DisplayName("手机号")]
+        public string Account { get; set; }
+
+        [Required(ErrorMessage = "验证码不能为空")]
+        [DisplayName("验证码")]
+        public string ValidationCode { get; set; }
+    }
+
+    public class MobilePasswordLoginInput
+    {
+        [Required(ErrorMessage = "请输入手机号")]
+        [ChineseMobile(ErrorMessage = "请输入合法的手机号")]
+        [DisplayName("手机号")]
+        public string Account { get; set; }
+
+        [Required(ErrorMessage = "请输入密码")]
+        [StringLength(32, MinimumLength = 6, ErrorMessage = "密码请保持在6-32个字符之间")]
+        [DataType(DataType.Password)]
+        [DisplayName("密码")]
+        public string Password { get; set; }
+    }
 }

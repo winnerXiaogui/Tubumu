@@ -309,7 +309,7 @@ namespace Tubumu.Modules.Admin.Repositories
                     m.ToUserId,
                 }).
                 ToArrayAsync();
-            if (notifications != null && notifications.Any(m => m.ToUserId.HasValue && m.ToUserId != userId))
+            if (notifications.Any(m => m.ToUserId.HasValue && m.ToUserId != userId))
             {
                 modelState.AddModelError("Error", "尝试读取不存在或非发给本人的通知");
                 return false;

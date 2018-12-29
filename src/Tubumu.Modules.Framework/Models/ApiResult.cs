@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Tubumu.Modules.Framework.Models
 {
-    public enum ApiResultCode : Int32
+    public enum ApiResultCode
     {
         Success = 200,
         DefaultError = 400

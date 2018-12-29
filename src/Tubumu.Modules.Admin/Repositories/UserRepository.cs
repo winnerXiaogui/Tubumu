@@ -24,6 +24,7 @@ namespace Tubumu.Modules.Admin.Repositories
         Task<XM.UserInfo> GetItemByEmailAsync(string email, XM.UserStatus? status = null);
         Task<XM.UserInfo> GetItemByWeiXinOpenIdAsync(string wxOpenId);
         Task<XM.UserInfo> GetItemByWeiXinAppOpenIdAsync(string wxaOpenId);
+        Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(string wxOpenId, string mobile = null, string displayName = null);
         Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(string wxaOpenId, string mobile = null, string displayName = null);
         Task<string> GetHeadUrlAsync(int userId);
         Task<List<XM.UserInfoWarpper>> GetUserInfoWarpperListAsync(IEnumerable<int> userIds);
@@ -264,6 +265,50 @@ namespace Tubumu.Modules.Admin.Repositories
             XM.UserInfo user = await _tubumuContext.User.AsNoTracking().Where(m => m.WeiXinAppOpenId == wxaOpenId).Select(_selector).FirstOrDefaultAsync();
             return user;
         }
+        public async Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(string wxOpenId, string mobile = null, string displayName = null)
+        {
+            if (wxOpenId.IsNullOrWhiteSpace()) return null;
+            var user = await GetItemByWeiXinAppOpenIdAsync(wxOpenId);
+            if (user == null)
+            {
+                var newUser = new User
+                {
+                    Status = XM.UserStatus.Normal,
+                    CreationDate = DateTime.Now,
+                    WeiXinOpenId = wxOpenId,
+                    Mobile = mobile,
+                    DisplayName = displayName,
+                    // TODO: (alby)硬编码修正
+                    GroupId = new Guid("11111111-1111-1111-1111-111111111111"), // 等待分配组
+                    Username = "g" + Guid.NewGuid().ToString("N").Substring(19),
+                    Password = wxOpenId,
+                };
+
+                _tubumuContext.User.Add(newUser);
+                await _tubumuContext.SaveChangesAsync();
+            }
+            else
+            {
+                if (!displayName.IsNullOrWhiteSpace() || !mobile.IsNullOrWhiteSpace())
+                {
+                    var item = await _tubumuContext.User.Where(m => m.WeiXinOpenId == wxOpenId).FirstOrDefaultAsync();
+                    if (item != null)
+                    {
+                        if (!displayName.IsNullOrWhiteSpace())
+                        {
+                            item.DisplayName = displayName;
+                        }
+                        if (!mobile.IsNullOrWhiteSpace())
+                        {
+                            item.Mobile = mobile;
+                        }
+                        await _tubumuContext.SaveChangesAsync();
+                    }
+                }
+            }
+
+            return await GetItemByWeiXinOpenIdAsync(wxOpenId);
+        }
         public async Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(string wxaOpenId, string mobile = null, string displayName = null)
         {
             if (wxaOpenId.IsNullOrWhiteSpace()) return null;
@@ -279,7 +324,7 @@ namespace Tubumu.Modules.Admin.Repositories
                     DisplayName = displayName,
                     // TODO: (alby)硬编码修正
                     GroupId = new Guid("11111111-1111-1111-1111-111111111111"), // 等待分配组
-                    Username = Guid.NewGuid().ToString("N").Substring(20),
+                    Username = "g" + Guid.NewGuid().ToString("N").Substring(19),
                     Password = wxaOpenId,
                 };
 
@@ -550,9 +595,9 @@ namespace Tubumu.Modules.Admin.Repositories
             if (userInput.UserId.HasValue)
             {
                 userToSave = await _tubumuContext.User.
-                    Include(m=>m.UserGroup).
-                    Include(m=>m.UserRole).
-                    Include(m=>m.UserPermission).
+                    Include(m => m.UserGroup).
+                    Include(m => m.UserRole).
+                    Include(m => m.UserPermission).
                     FirstOrDefaultAsync(m => m.UserId == userInput.UserId.Value);
                 if (userToSave == null)
                 {
@@ -574,7 +619,7 @@ namespace Tubumu.Modules.Admin.Repositories
                 userToSave.CreationDate = DateTime.Now;
             }
 
-            var group = await _tubumuContext.Group.Include(m=>m.GroupAvailableRole).FirstOrDefaultAsync(m => m.GroupId == userInput.GroupId);
+            var group = await _tubumuContext.Group.Include(m => m.GroupAvailableRole).FirstOrDefaultAsync(m => m.GroupId == userInput.GroupId);
             if (group == null)
             {
                 modelState.AddModelError("GroupId", "分组不存在");

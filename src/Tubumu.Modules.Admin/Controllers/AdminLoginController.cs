@@ -43,7 +43,7 @@ namespace Tubumu.Modules.Admin.Controllers
         [HttpPost]
         [Route("Login")]
         [AllowAnonymous]
-        public async Task<ActionResult<ApiTokenResult>> Login([FromBody]AccountPasswordValidationCodeInput input)
+        public async Task<ActionResult<ApiTokenResult>> Login([FromBody]AccountPasswordValidationCodeLoginInput input)
         {
             var result = new ApiTokenResult();
             var validationCode = HttpContext.Session.GetString(ValidationCodeKey);

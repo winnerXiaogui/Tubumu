@@ -22,6 +22,7 @@ namespace Tubumu.Modules.Admin.Services
         Task<UserInfo> GetItemByEmailAsync(string email, UserStatus? status = null);
         Task<UserInfo> GetItemByWeiXinOpenIdAsync(string wxOpenId);
         Task<UserInfo> GetItemByWeiXinAppOpenIdAsync(string wxaOpenId);
+        Task<UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(string wxOpenId, string mobile = null, string displayName = null);
         Task<UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(string wxaOpenId, string mobile = null, string displayName = null);
         Task<List<UserInfoWarpper>> GetUserInfoWarpperListAsync(IEnumerable<int> userIds);
         Task<string> GetHeadUrlAsync(int userId);
@@ -107,6 +108,10 @@ namespace Tubumu.Modules.Admin.Services
         public async Task<UserInfo> GetItemByWeiXinAppOpenIdAsync(string wxaOpenId)
         {
             return await _repository.GetItemByWeiXinAppOpenIdAsync(wxaOpenId);
+        }
+        public async Task<UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(string wxOpenId, string mobile, string displayName = null)
+        {
+            return await _repository.GetOrGenerateNormalItemByWeiXinOpenIdAsync(wxOpenId, mobile, displayName);
         }
         public async Task<UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(string wxaOpenId, string mobile, string displayName = null)
         {
