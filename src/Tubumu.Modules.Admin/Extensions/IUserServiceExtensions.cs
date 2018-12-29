@@ -39,7 +39,7 @@ namespace Tubumu.Modules.Admin.Services
             if (userInfo == null || userInfo.Password.IsNullOrWhiteSpace()) return null;
             return CheckPassword(userInfo, password);
         }
-        public static async Task<UserInfo> GetNormalUserByStringUesrIdAsync(this IUserService userService, string userId)
+        public static async Task<UserInfo> GetNormalUserByUesrIdAsync(this IUserService userService, string userId)
         {
             if(int.TryParse(userId, out var value))
             {
