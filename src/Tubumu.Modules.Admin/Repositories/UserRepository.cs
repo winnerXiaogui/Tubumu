@@ -24,8 +24,10 @@ namespace Tubumu.Modules.Admin.Repositories
         Task<XM.UserInfo> GetItemByEmailAsync(string email, XM.UserStatus? status = null);
         Task<XM.UserInfo> GetItemByWeiXinOpenIdAsync(string wxOpenId);
         Task<XM.UserInfo> GetItemByWeiXinAppOpenIdAsync(string wxaOpenId);
-        Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(string wxOpenId, string mobile = null, string displayName = null);
-        Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(string wxaOpenId, string mobile = null, string displayName = null);
+        Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(Guid groupId, string wxOpenId, string mobile = null, string displayName = null);
+        Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(Guid groupId, string wxaOpenId, string mobile = null, string displayName = null);
+        Task<XM.UserInfo> GenerateItemAsync(Guid groupId, XM.UserStatus status, string mobile, string password, ModelStateDictionary modelState);
+        Task<int> ResetPasswordAsync(string mobile, string password, ModelStateDictionary modelState);
         Task<string> GetHeadUrlAsync(int userId);
         Task<List<XM.UserInfoWarpper>> GetUserInfoWarpperListAsync(IEnumerable<int> userIds);
         Task<bool> IsExistsUsernameAsync(string username);
@@ -43,11 +45,11 @@ namespace Tubumu.Modules.Admin.Repositories
         Task<bool> ChangeMobileAsync(int userId, string newMobile, ModelStateDictionary modelState);
         Task<bool> ChangeDisplayNameAsync(int userId, string newDisplayName);
         Task<bool> ChangeLogoAsync(int userId, string logoURL);
-        Task<bool> ChangePasswordAsync(int userId, string newPassword);
+        Task<bool> ChangePasswordAsync(int userId, string newPassword, ModelStateDictionary modelState);
         Task<bool> ChangeProfileAsync(int userId, UserChangeProfileInput userChangeProfileInput);
         Task<bool> ChangeHeadAsync(int userId, string newHeadUrl);
-        Task<int> ChangePasswordAsync(string username, string newPassword);
-        Task<int> ResetPasswordByMobileAsync(string username, string newPassword, ModelStateDictionary modelState);
+        Task<int> ChangePasswordAsync(string username, string newPassword, ModelStateDictionary modelState);
+        Task<int> ResetPasswordByAccountAsync(string account, string password, ModelStateDictionary modelState);
         Task<bool> RemoveAsync(int userId, ModelStateDictionary modelState);
         Task<bool> ChangeStatusAsync(int userId, XM.UserStatus status);
         Task<bool> UpdateClientAgentAsync(int userId, String clientAgent, String ip);
@@ -265,7 +267,7 @@ namespace Tubumu.Modules.Admin.Repositories
             XM.UserInfo user = await _tubumuContext.User.AsNoTracking().Where(m => m.WeiXinAppOpenId == wxaOpenId).Select(_selector).FirstOrDefaultAsync();
             return user;
         }
-        public async Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(string wxOpenId, string mobile = null, string displayName = null)
+        public async Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(Guid groupId, string wxOpenId, string mobile = null, string displayName = null)
         {
             if (wxOpenId.IsNullOrWhiteSpace()) return null;
             var user = await GetItemByWeiXinAppOpenIdAsync(wxOpenId);
@@ -278,8 +280,7 @@ namespace Tubumu.Modules.Admin.Repositories
                     WeiXinOpenId = wxOpenId,
                     Mobile = mobile,
                     DisplayName = displayName,
-                    // TODO: (alby)硬编码修正
-                    GroupId = new Guid("11111111-1111-1111-1111-111111111111"), // 等待分配组
+                    GroupId = groupId, // new Guid("11111111-1111-1111-1111-111111111111") 等待分配组
                     Username = "g" + Guid.NewGuid().ToString("N").Substring(19),
                     Password = wxOpenId,
                 };
@@ -309,7 +310,7 @@ namespace Tubumu.Modules.Admin.Repositories
 
             return await GetItemByWeiXinOpenIdAsync(wxOpenId);
         }
-        public async Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(string wxaOpenId, string mobile = null, string displayName = null)
+        public async Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(Guid groupId, string wxaOpenId, string mobile = null, string displayName = null)
         {
             if (wxaOpenId.IsNullOrWhiteSpace()) return null;
             var user = await GetItemByWeiXinAppOpenIdAsync(wxaOpenId);
@@ -322,8 +323,7 @@ namespace Tubumu.Modules.Admin.Repositories
                     WeiXinAppOpenId = wxaOpenId,
                     Mobile = mobile,
                     DisplayName = displayName,
-                    // TODO: (alby)硬编码修正
-                    GroupId = new Guid("11111111-1111-1111-1111-111111111111"), // 等待分配组
+                    GroupId = groupId, // new Guid("11111111-1111-1111-1111-111111111111") 等待分配组
                     Username = "g" + Guid.NewGuid().ToString("N").Substring(19),
                     Password = wxaOpenId,
                 };
@@ -352,6 +352,53 @@ namespace Tubumu.Modules.Admin.Repositories
             }
 
             return await GetItemByWeiXinAppOpenIdAsync(wxaOpenId);
+        }
+        public async Task<XM.UserInfo> GenerateItemAsync(Guid groupId, XM.UserStatus status, string mobile, string password, ModelStateDictionary modelState)
+        {
+            if(await _tubumuContext.User.AnyAsync(m => m.Mobile == mobile))
+            {
+                modelState.AddModelError(nameof(mobile), $"手机号 {mobile} 已被注册。");
+                return null;
+            }
+
+            var newUser = new User
+            {
+                Status = status,
+                CreationDate = DateTime.Now,
+                Mobile = mobile,
+                MobileIsValid = true,
+                GroupId = groupId,
+                Username = "g" + Guid.NewGuid().ToString("N").Substring(19),
+                Password = password,
+            };
+
+            _tubumuContext.User.Add(newUser);
+            await _tubumuContext.SaveChangesAsync();
+            return await GetItemByUserIdAsync(newUser.UserId);
+        }
+        public async Task<int> ResetPasswordAsync(string mobile, string password, ModelStateDictionary modelState)
+        {
+            if(!await _tubumuContext.User.AnyAsync(m => m.Mobile == mobile))
+            {
+                modelState.AddModelError(nameof(mobile), $"手机号 {mobile} 尚未注册。");
+                return 0;
+            }
+
+            var user = await _tubumuContext.User.Where(m=>m.Mobile == mobile).FirstOrDefaultAsync();
+            if(user == null)
+            {
+                modelState.AddModelError(nameof(mobile), $"手机号 {mobile} 尚未注册。");
+                return 0;
+            }
+            if(user.Status != XM.UserStatus.Normal)
+            {
+                modelState.AddModelError(nameof(mobile), $"手机号 {mobile} 的用户状态不允许重置密码。");
+                return 0;
+            }
+
+            user.Password = password;
+            await _tubumuContext.SaveChangesAsync();
+            return user.UserId;
         }
         public async Task<string> GetHeadUrlAsync(int userId)
         {
@@ -839,16 +886,31 @@ namespace Tubumu.Modules.Admin.Repositories
 
             return true;
         }
-        public async Task<bool> ChangePasswordAsync(int userId, string newPassword)
+        public async Task<bool> ChangePasswordAsync(int userId, string newPassword, ModelStateDictionary modelState)
         {
             var user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
             if (user == null)
+            {
+                modelState.AddModelError("Error", "用户不存在");
                 return false;
+            }
 
             user.Password = newPassword;
             await _tubumuContext.SaveChangesAsync();
-
             return true;
+        }
+        public async Task<int> ChangePasswordAsync(string username, string newPassword, ModelStateDictionary modelState)
+        {
+            var user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.Username == username);
+            if (user == null)
+            {
+                modelState.AddModelError("Error", "用户不存在");
+                return 0;
+            }
+
+            user.Password = newPassword;
+            await _tubumuContext.SaveChangesAsync();
+            return user.UserId;
         }
         public async Task<bool> ChangeProfileAsync(int userId, UserChangeProfileInput userChangeProfileInput)
         {
@@ -864,30 +926,17 @@ namespace Tubumu.Modules.Admin.Repositories
             return true;
 
         }
-        public async Task<int> ChangePasswordAsync(string username, string newPassword)
+        public async Task<int> ResetPasswordByAccountAsync(string account, string password, ModelStateDictionary modelState)
         {
-            var user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.Username == username);
-            if (user == null)
-                return 0;
-
-            user.Password = newPassword;
-            await _tubumuContext.SaveChangesAsync();
-
-            return user.UserId;
-        }
-        public async Task<int> ResetPasswordByMobileAsync(string username, string newPassword, ModelStateDictionary modelState)
-        {
-            var user =
-                await _tubumuContext.User.FirstOrDefaultAsync(m => m.Username == username || (m.MobileIsValid && m.Mobile == username) || (m.EmailIsValid && m.Email == username));
+            var user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.Username == account || (m.MobileIsValid && m.Mobile == account) || (m.EmailIsValid && m.Email == account));
             if (user == null)
             {
                 modelState.AddModelError("Mobile", "重置密码失败:用户不存在");
                 return 0;
             }
 
-            user.Password = newPassword;
+            user.Password = password;
             await _tubumuContext.SaveChangesAsync();
-
             return user.UserId;
         }
         public async Task<bool> ChangeHeadAsync(int userId, string headUrl)
@@ -1248,14 +1297,6 @@ namespace Tubumu.Modules.Admin.Repositories
         }
 
         #endregion
-
-        public static string GeneratePassword(string rawPassword)
-        {
-            if (rawPassword.IsNullOrWhiteSpace()) return String.Empty;
-            string passwordSalt = Guid.NewGuid().ToString("N");
-            string data = SHA256.Encrypt(rawPassword, passwordSalt);
-            return "{0}|{1}".FormatWith(passwordSalt, data);
-        }
 
     }
 }

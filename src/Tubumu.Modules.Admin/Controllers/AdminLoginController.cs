@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Tubumu.Modules.Admin.Models;
 using Tubumu.Modules.Admin.Models.InputModels;
 using Tubumu.Modules.Admin.Services;
 using Tubumu.Modules.Framework.Authorization;
@@ -71,22 +72,7 @@ namespace Tubumu.Modules.Admin.Controllers
                 return result;
             }
 
-            var groups = from m in user.AllGroups select new Claim(TubumuClaimTypes.Group, m.Name);
-            var roles = from m in user.AllRoles select new Claim(ClaimTypes.Role, m.Name);
-            var permissions = from m in user.AllPermissions select new Claim(TubumuClaimTypes.Permission, m.Name);
-            var claims = (new[] { new Claim(ClaimTypes.Name, user.UserId.ToString()) }).
-                Union(groups).
-                Union(roles).
-                Union(permissions);
-            var token = new JwtSecurityToken(
-                _tokenValidationSettings.ValidIssuer,
-                _tokenValidationSettings.ValidAudience,
-                claims,
-                expires: DateTime.UtcNow.AddDays(30),
-                signingCredentials: SignatureHelper.GenerateSigningCredentials(_tokenValidationSettings.IssuerSigningKey));
-
-            var jwt = _tokenHandler.WriteToken(token);
-
+            var jwt = GetJwt(user);
             result.Token = jwt;
             result.Url = _frontendSettings.CoreEnvironment.IsDevelopment ? _frontendSettings.CoreEnvironment.DevelopmentHost + "/modules/index.html" : Url.Action("Index", "View");
             result.Code = 200;
@@ -103,9 +89,13 @@ namespace Tubumu.Modules.Admin.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost("Logout")]
-        public ApiResult Logout()
+        public async Task<ApiResult> Logout()
         {
-            _userService.SignOutAsync();
+            var userId = HttpContext.User.GetUserId();
+            if (userId >= 0)
+            {
+                await _userService.SignOutAsync(userId);
+            }
             var result = new ApiResult
             {
                 Code = 200,
@@ -117,5 +107,25 @@ namespace Tubumu.Modules.Admin.Controllers
         }
 
         #endregion
+
+        private string GetJwt(UserInfo user)
+        {
+            var groups = from m in user.AllGroups select new Claim(TubumuClaimTypes.Group, m.Name);
+            var roles = from m in user.AllRoles select new Claim(ClaimTypes.Role, m.Name);
+            var permissions = from m in user.AllPermissions select new Claim(TubumuClaimTypes.Permission, m.Name);
+            var claims = (new[] { new Claim(ClaimTypes.Name, user.UserId.ToString()) }).
+                Union(groups).
+                Union(roles).
+                Union(permissions);
+            var token = new JwtSecurityToken(
+                _tokenValidationSettings.ValidIssuer,
+                _tokenValidationSettings.ValidAudience,
+                claims,
+                expires: DateTime.UtcNow.AddDays(30),
+                signingCredentials: SignatureHelper.GenerateSigningCredentials(_tokenValidationSettings.IssuerSigningKey));
+
+            var jwt = _tokenHandler.WriteToken(token);
+            return jwt;
+        }
     }
 }

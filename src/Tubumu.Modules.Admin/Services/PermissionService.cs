@@ -43,18 +43,21 @@ namespace Tubumu.Modules.Admin.Services
         {
             List<Permission> permissions = await GetListInCacheAsync();
             if (!permissions.IsNullOrEmpty())
+            {
                 return permissions.FirstOrDefault(m => m.Name == name);
-            else
-                return await _repository.GetItemAsync(name);
+
+            }
+            return await _repository.GetItemAsync(name);
         }
 
         public async Task<Permission> GetItemAsync(Guid permissionId)
         {
             List<Permission> permissions = await GetListInCacheAsync();
             if (!permissions.IsNullOrEmpty())
+            {
                 return permissions.FirstOrDefault(m => m.PermissionId == permissionId);
-            else
-                return await _repository.GetItemAsync(permissionId);
+            }
+            return await _repository.GetItemAsync(permissionId);
         }
 
         public async Task<List<Permission>> GetListInCacheAsync()
@@ -67,10 +70,15 @@ namespace Tubumu.Modules.Admin.Services
         public async Task<bool> SaveAsync(PermissionInput permissionInput, ModelStateDictionary modelState)
         {
             bool result = await _repository.SaveAsync(permissionInput);
-            if (!result)
-                modelState.AddModelError("Name", "添加或编辑时保存失败");
+            if (result)
+            {
+                await _cache.RemoveAsync(PermissionListCacheKey);
+            }
             else
-                _cache.Remove(PermissionListCacheKey);
+            {
+                modelState.AddModelError("Name", "添加或编辑时保存失败");
+
+            }
             return result;
         }
 
@@ -84,15 +92,17 @@ namespace Tubumu.Modules.Admin.Services
                 }
             }
 
-            _cache.Remove(PermissionListCacheKey);
+            await _cache.RemoveAsync(PermissionListCacheKey);
             return true;
         }
 
         public async Task<bool> RemoveAsync(Guid permissionId)
         {
-            bool result = await _repository.RemoveAsync(permissionId);
+            var result = await _repository.RemoveAsync(permissionId);
             if (result)
-                _cache.Remove(PermissionListCacheKey);
+            {
+                await _cache.RemoveAsync(PermissionListCacheKey);
+            }
             return result;
         }
 
@@ -100,20 +110,31 @@ namespace Tubumu.Modules.Admin.Services
         {
             if (ids == null) return true;
 
-            bool result = true;
+            var result = true;
             foreach (var id in ids)
-                result = await _repository.RemoveAsync(id);
+            {
+                var itemResult = await _repository.RemoveAsync(id);
+                if (!itemResult)
+                {
+                    result = false;
+                    break;
+                }
+            }
 
             if (result)
-                _cache.Remove(PermissionListCacheKey);
+            {
+                await _cache.RemoveAsync(PermissionListCacheKey);
+            }
             return result;
         }
 
         public async Task<bool> MoveAsync(Guid permissionId, MovingTarget target)
         {
-            bool result = await _repository.MoveAsync(permissionId, target);
+            var result = await _repository.MoveAsync(permissionId, target);
             if (result)
-                _cache.Remove(PermissionListCacheKey);
+            {
+                await _cache.RemoveAsync(PermissionListCacheKey);
+            }
             return result;
         }
 
@@ -155,7 +176,7 @@ namespace Tubumu.Modules.Admin.Services
         public async Task<List<Permission>> GetListInCacheInternalAsync()
         {
             var permissions = await _cache.GetJsonAsync<List<Permission>>(PermissionListCacheKey);
-            if(permissions == null)
+            if (permissions == null)
             {
                 permissions = await _repository.GetListAsync();
                 await _cache.SetJsonAsync<List<Permission>>(PermissionListCacheKey, permissions);

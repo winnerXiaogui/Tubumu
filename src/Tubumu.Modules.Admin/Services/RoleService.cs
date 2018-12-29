@@ -28,7 +28,7 @@ namespace Tubumu.Modules.Admin.Services
 
     public class RoleService : IRoleService
     {
-        private readonly IDistributedCache  _cache;
+        private readonly IDistributedCache _cache;
         private readonly IRoleRepository _repository;
         private const string RoleListCacheKey = "RoleList";
 
@@ -53,7 +53,7 @@ namespace Tubumu.Modules.Admin.Services
         public async Task<List<RoleBase>> GetBaseListInCacheAsync()
         {
             var roles = await GetListInCacheInternalAsync();
-            var roleBases = roles.Select(m=>new RoleBase
+            var roleBases = roles.Select(m => new RoleBase
             {
                 RoleId = m.RoleId,
                 Name = m.Name,
@@ -74,50 +74,64 @@ namespace Tubumu.Modules.Admin.Services
             if (!await ValidateExistsAsync(roleInput, modelState)) return null;
             var result = await _repository.SaveAsync(roleInput, modelState);
             if (result == null)
-                modelState.AddModelError("Name","添加或编辑时保存失败");
+            {
+                modelState.AddModelError("Name", "添加或编辑时保存失败");
+            }
             else
-                _cache.Remove(RoleListCacheKey);
+            {
+                await _cache.RemoveAsync(RoleListCacheKey);
+            }
 
             return result;
         }
 
         public async Task<bool> RemoveAsync(Guid roleId, ModelStateDictionary modelState)
         {
-            bool result = await _repository.RemoveAsync(roleId, modelState);
+            var result = await _repository.RemoveAsync(roleId, modelState);
             if (result)
-                _cache.Remove(RoleListCacheKey);
+            {
+                await _cache.RemoveAsync(RoleListCacheKey);
+            }
             return result;
         }
 
         public async Task<bool> EditNameAsync(SaveRoleNameInput saveRoleNameInput, ModelStateDictionary modelState)
         {
-            bool result = await _repository.SaveNameAsync(saveRoleNameInput, modelState);
+            var result = await _repository.SaveNameAsync(saveRoleNameInput, modelState);
             if (result)
-                _cache.Remove(RoleListCacheKey);
+            {
+                await _cache.RemoveAsync(RoleListCacheKey);
+            }
             return result;
         }
 
         public async Task<bool> MoveAsync(Guid roleId, MovingTarget target)
         {
-            bool result = await _repository.MoveAsync(roleId, target);
-            if(result)
-                _cache.Remove(RoleListCacheKey);
+            var result = await _repository.MoveAsync(roleId, target);
+            if (result)
+            {
+                await _cache.RemoveAsync(RoleListCacheKey);
+            }
             return result;
         }
 
         public async Task<bool> MoveAsync(int sourceDisplayOrder, int targetDisplayOrder, ModelStateDictionary modelState)
         {
-            bool result = await _repository.MoveAsync(sourceDisplayOrder, targetDisplayOrder, modelState);
+            var result = await _repository.MoveAsync(sourceDisplayOrder, targetDisplayOrder, modelState);
             if (result)
-                _cache.Remove(RoleListCacheKey);
+            {
+                await _cache.RemoveAsync(RoleListCacheKey);
+            }
             return result;
         }
 
         public async Task<bool> MoveAsync(Guid sourceRoleId, Guid targetRoleId, ModelStateDictionary modelState)
         {
-            bool result = await _repository.MoveAsync(sourceRoleId, targetRoleId, modelState);
+            var result = await _repository.MoveAsync(sourceRoleId, targetRoleId, modelState);
             if (result)
-                _cache.Remove(RoleListCacheKey);
+            {
+                await _cache.RemoveAsync(RoleListCacheKey);
+            }
             return result;
         }
 

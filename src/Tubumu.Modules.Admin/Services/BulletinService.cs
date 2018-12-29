@@ -35,7 +35,9 @@ namespace Tubumu.Modules.Admin.Services
         {
             bool result = await _repository.SaveAsync(bulletin, modelState);
             if (result)
-                _cache.Remove(CacheKey);
+            {
+                await _cache.RemoveAsync(CacheKey);
+            }
             return result;
         }
 

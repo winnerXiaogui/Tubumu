@@ -72,42 +72,51 @@ namespace Tubumu.Modules.Admin.Services
         {
             if (!await ValidateExistsAsync(groupInput, modelState)) return false;
 
-            bool result = await _repository.SaveAsync(groupInput, modelState);
+            var result = await _repository.SaveAsync(groupInput, modelState);
             if (result)
-                _cache.Remove(GroupListCacheKey);
-
+            {
+                await _cache.RemoveAsync(GroupListCacheKey);
+            }
             return result;
         }
 
         public async Task<bool> RemoveAsync(Guid groupId, ModelStateDictionary modelState)
         {
-            bool result = await _repository.RemoveAsync(groupId, modelState);
+            var result = await _repository.RemoveAsync(groupId, modelState);
             if (result)
-                _cache.Remove(GroupListCacheKey);
+            {
+                await _cache.RemoveAsync(GroupListCacheKey);
+            }
             return result;
         }
 
         public async Task<bool> MoveAsync(Guid groupId, MovingTarget movingTarget)
         {
-            bool result = await _repository.MoveAsync(groupId, movingTarget);
+            var result = await _repository.MoveAsync(groupId, movingTarget);
             if (result)
-                _cache.Remove(GroupListCacheKey);
+            {
+                await _cache.RemoveAsync(GroupListCacheKey);
+            }
             return result;
         }
 
         public async Task<bool> MoveAsync(Guid sourceGroupId, Guid targetGroupId, MovingLocation movingLocation, bool? isChild, ModelStateDictionary modelState)
         {
-            bool result = await _repository.MoveAsync(sourceGroupId, targetGroupId, movingLocation, isChild, modelState);
+            var result = await _repository.MoveAsync(sourceGroupId, targetGroupId, movingLocation, isChild, modelState);
             if (result)
-                _cache.Remove(GroupListCacheKey);
+            {
+                await _cache.RemoveAsync(GroupListCacheKey);
+            }
             return result;
         }
 
         public async Task<bool> MoveAsync(int sourceDisplayOrder, int targetDisplayOrder, MovingLocation movingLocation, bool? isChild, ModelStateDictionary modelState)
         {
-            bool result = await _repository.MoveAsync(sourceDisplayOrder, targetDisplayOrder, movingLocation, isChild, modelState);
+            var result = await _repository.MoveAsync(sourceDisplayOrder, targetDisplayOrder, movingLocation, isChild, modelState);
             if (result)
-                _cache.Remove(GroupListCacheKey);
+            {
+                await _cache.RemoveAsync(GroupListCacheKey);
+            }
             return result;
         }
 
@@ -120,7 +129,7 @@ namespace Tubumu.Modules.Admin.Services
         /// </summary>
         private async Task<bool> ValidateExistsAsync(GroupInput groupInput, ModelStateDictionary modelState)
         {
-            Group foundGroup = await _repository.GetItemAsync(groupInput.Name);
+            var foundGroup = await _repository.GetItemAsync(groupInput.Name);
 
             if (foundGroup != null && groupInput.GroupId != foundGroup.GroupId)
             {

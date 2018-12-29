@@ -13,5 +13,14 @@ namespace Tubumu.Modules.Framework.Authorization
         {
             return user.HasClaim(TubumuClaimTypes.Group, group);
         }
+
+        public static int GetUserId(this ClaimsPrincipal user)
+        {
+            if(int.TryParse(user.Identity.Name, out var userId))
+            {
+                return userId;
+            }
+            return -1;
+        }
     }
 }

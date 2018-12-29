@@ -55,7 +55,7 @@ namespace Tubumu.Modules.Admin.Models.InputModels
         [Required(ErrorMessage = "请输入手机号")]
         [ChineseMobile(ErrorMessage = "请输入合法的手机号")]
         [DisplayName("手机号")]
-        public string Account { get; set; }
+        public string Mobile { get; set; }
 
         [Required(ErrorMessage = "请输入密码")]
         [StringLength(32, MinimumLength = 6, ErrorMessage = "密码请保持在6-32个字符之间")]

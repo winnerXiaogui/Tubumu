@@ -11,6 +11,7 @@ using Tubumu.Modules.Admin.Repositories;
 using Tubumu.Modules.Framework.Extensions;
 using Tubumu.Modules.Framework.Models;
 using Tubumu.Modules.Framework.Services;
+using Tubumu.Modules.Framework.Utilities.Cryptography;
 
 namespace Tubumu.Modules.Admin.Services
 {
@@ -22,8 +23,10 @@ namespace Tubumu.Modules.Admin.Services
         Task<UserInfo> GetItemByEmailAsync(string email, UserStatus? status = null);
         Task<UserInfo> GetItemByWeiXinOpenIdAsync(string wxOpenId);
         Task<UserInfo> GetItemByWeiXinAppOpenIdAsync(string wxaOpenId);
-        Task<UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(string wxOpenId, string mobile = null, string displayName = null);
-        Task<UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(string wxaOpenId, string mobile = null, string displayName = null);
+        Task<UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(Guid groupId, UserStatus status, string wxOpenId, string mobile = null, string displayName = null);
+        Task<UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(Guid groupId, UserStatus status, string wxaOpenId, string mobile = null, string displayName = null);
+        Task<UserInfo> GenerateItemAsync(Guid groupId, UserStatus status, MobilePassswordValidationCodeRegisterInput input, ModelStateDictionary modelState);
+        Task<bool> ResetPasswordAsync(MobileResetPassswordInput input, ModelStateDictionary modelState);
         Task<List<UserInfoWarpper>> GetUserInfoWarpperListAsync(IEnumerable<int> userIds);
         Task<string> GetHeadUrlAsync(int userId);
         Task<bool> IsExistsAsync(int userId, UserStatus? status = null);
@@ -40,9 +43,9 @@ namespace Tubumu.Modules.Admin.Services
         Task<bool> ChangeMobileAsync(int userId, string newMobile, ModelStateDictionary modelState);
         Task<bool> ChangeDisplayNameAsync(int userId, string newDisplayName, ModelStateDictionary modelState);
         Task<bool> ChangeLogoAsync(int userId, string logoUrl, ModelStateDictionary modelState);
-        Task<bool> ChangePasswordAsync(int userId, string rawPassword, ModelStateDictionary modelState);
+        Task<bool> ChangePasswordAsync(int userId, string newPassword, ModelStateDictionary modelState);
         Task<bool> ChangeProfileAsync(int userId, UserChangeProfileInput userChangeProfileInput, ModelStateDictionary modelState);
-        Task<bool> ResetPasswordByMobileAsync(string username, string rawPassword, ModelStateDictionary modelState);
+        Task<bool> ResetPasswordByAccountAsync(string account, string newPassword, ModelStateDictionary modelState);
         Task<bool> ChangeHeadAsync(int userId, string newHead);
         Task<bool> GetPasswordAsync(UserGetPasswordInput input, ModelStateDictionary modelState);
         Task<bool> RemoveAsync(int userId, ModelStateDictionary modelState);
@@ -55,7 +58,7 @@ namespace Tubumu.Modules.Admin.Services
         Task<bool> CleanWeiXinAppOpenIdAsync(int userId);
         Task<bool> ClearClientAgentAsync(int userId, String clientAgent, String uuid);
         Task<bool> SignInAsync(Func<Task<UserInfo>> getUser, Action<UserInfo> afterSignIn = null);
-        Task<bool> SignOutAsync();
+        Task<bool> SignOutAsync(int userId);
         Task<bool> GetMobileValidationCodeAsync(GetMobileValidationCodeInput getMobileValidationCodeInput, ModelStateDictionary modelState);
         Task<bool> VerifyMobileValidationCodeAsync(VerifyMobileValidationCodeInput verifyMobileValidationCodeInput, ModelStateDictionary modelState, string defaultCode = null);
         Task<bool> FinishVerifyMobileValidationCodeAsync(string mobile, int typeId, ModelStateDictionary modelState);
@@ -79,9 +82,10 @@ namespace Tubumu.Modules.Admin.Services
         }
 
         #region IUserService Members
+
         public async Task<UserInfo> GetItemByUserIdAsync(int userId, UserStatus? status = null)
         {
-            if(status == UserStatus.Normal)
+            if (status == UserStatus.Normal)
             {
                 return await GetNormalItemByUserIdInCacheInternalAsync(userId);
             }
@@ -90,32 +94,91 @@ namespace Tubumu.Modules.Admin.Services
         public async Task<UserInfo> GetItemByUsernameAsync(string username, UserStatus? status = null)
         {
             if (username.IsNullOrWhiteSpace()) return null;
-            return await _repository.GetItemByUsernameAsync(username, status);
+            var userInfo = await _repository.GetItemByUsernameAsync(username, status);
+            if (userInfo != null && userInfo.Status == UserStatus.Normal)
+            {
+                await CacheUser(userInfo);
+            }
+            return userInfo;
         }
         public async Task<UserInfo> GetItemByMobileAsync(string mobile, UserStatus? status = null)
         {
             if (mobile.IsNullOrWhiteSpace()) return null;
-            return await _repository.GetItemByMobileAsync(mobile, status);
+            var userInfo = await _repository.GetItemByMobileAsync(mobile, status);
+            if (userInfo != null && userInfo.Status == UserStatus.Normal)
+            {
+                await CacheUser(userInfo);
+            }
+            return userInfo;
         }
         public async Task<UserInfo> GetItemByEmailAsync(string email, UserStatus? status = null)
         {
-            return await _repository.GetItemByEmailAsync(email, status);
+            if (email.IsNullOrWhiteSpace()) return null;
+            var userInfo = await _repository.GetItemByEmailAsync(email, status);
+            if (userInfo != null && userInfo.Status == UserStatus.Normal)
+            {
+                await CacheUser(userInfo);
+            }
+            return userInfo;
         }
         public async Task<UserInfo> GetItemByWeiXinOpenIdAsync(string wxOpenId)
         {
-            return await _repository.GetItemByWeiXinOpenIdAsync(wxOpenId);
+            var userInfo = await _repository.GetItemByWeiXinOpenIdAsync(wxOpenId);
+            if (userInfo != null && userInfo.Status == UserStatus.Normal)
+            {
+                await CacheUser(userInfo);
+            }
+            return userInfo;
         }
         public async Task<UserInfo> GetItemByWeiXinAppOpenIdAsync(string wxaOpenId)
         {
-            return await _repository.GetItemByWeiXinAppOpenIdAsync(wxaOpenId);
+            var userInfo = await _repository.GetItemByWeiXinAppOpenIdAsync(wxaOpenId);
+            if (userInfo != null && userInfo.Status == UserStatus.Normal)
+            {
+                await CacheUser(userInfo);
+            }
+            return userInfo;
         }
-        public async Task<UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(string wxOpenId, string mobile, string displayName = null)
+        public async Task<UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(Guid groupId, UserStatus status, string wxOpenId, string mobile, string displayName = null)
         {
-            return await _repository.GetOrGenerateNormalItemByWeiXinOpenIdAsync(wxOpenId, mobile, displayName);
+            var userInfo = await _repository.GetOrGenerateNormalItemByWeiXinOpenIdAsync(groupId, wxOpenId, mobile, displayName);
+            if (userInfo != null && userInfo.Status == UserStatus.Normal)
+            {
+                await CacheUser(userInfo);
+            }
+            return userInfo;
         }
-        public async Task<UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(string wxaOpenId, string mobile, string displayName = null)
+        public async Task<UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(Guid groupId, UserStatus status, string wxaOpenId, string mobile, string displayName = null)
         {
-            return await _repository.GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(wxaOpenId, mobile, displayName);
+            var userInfo = await _repository.GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(groupId, wxaOpenId, mobile, displayName);
+            if (userInfo != null && userInfo.Status == UserStatus.Normal)
+            {
+                await CacheUser(userInfo);
+            }
+            return userInfo;
+        }
+        public async Task<UserInfo> GenerateItemAsync(Guid groupId, UserStatus status, MobilePassswordValidationCodeRegisterInput input, ModelStateDictionary modelState)
+        {
+            // 密码加密
+            var password = GeneratePassword(input.Password);
+            var userInfo = await _repository.GenerateItemAsync(groupId, status, input.Mobile, password, modelState);
+            if (userInfo != null && userInfo.Status == UserStatus.Normal)
+            {
+                await CacheUser(userInfo);
+            }
+            return userInfo;
+        }
+        public async Task<bool> ResetPasswordAsync(MobileResetPassswordInput input, ModelStateDictionary modelState)
+        {
+            // 密码加密
+            var password = GeneratePassword(input.Password);
+            var userId = await _repository.ResetPasswordAsync(input.Mobile, password, modelState);
+            if (userId <= 0 || !modelState.IsValid)
+            {
+                return false;
+            }
+            await CleanCache(userId);
+            return true;
         }
         public async Task<List<UserInfoWarpper>> GetUserInfoWarpperListAsync(IEnumerable<int> userIds)
         {
@@ -159,11 +222,6 @@ namespace Tubumu.Modules.Admin.Services
             if (email.IsNullOrWhiteSpace()) return false;
             return await _repository.VerifyExistsEmailAsync(userId, email);
         }
-        /// <summary>
-        /// 验证用户名是否已经被使用
-        /// </summary>
-        /// <param name="userInput"></param>
-        /// <param name="modelState"></param>
         public async Task<bool> VerifyExistsAsync(UserInput userInput, ModelStateDictionary modelState)
         {
             return await _repository.VerifyExistsAsync(userInput, modelState);
@@ -177,11 +235,12 @@ namespace Tubumu.Modules.Admin.Services
         {
             //验证用户名、手机号码和邮箱是否被占用
             if (await VerifyExistsAsync(userInput, modelState))
+            {
                 return null;
-
+            }
             //生成密码
             if (!userInput.Password.IsNullOrWhiteSpace())
-                userInput.Password = userInput.PasswordConfirm = UserRepository.GeneratePassword(userInput.Password);
+                userInput.Password = userInput.PasswordConfirm = GeneratePassword(userInput.Password);
             else
                 userInput.Password = userInput.PasswordConfirm = String.Empty;
 
@@ -199,28 +258,23 @@ namespace Tubumu.Modules.Admin.Services
                 userInput.MobileIsValid = false;
             }
             //保存实体
-            UserInfo user = await _repository.SaveAsync(userInput, modelState);
-            if (user != null)
+            var userInfo = await _repository.SaveAsync(userInput, modelState);
+            if (userInfo != null && userInfo.Status == UserStatus.Normal)
             {
-                //清除缓存
-                string cacheKey = UserCacheKeyFormat.FormatWith(user.UserId);
-                _cache.Remove(cacheKey);
-                return user;
+                await CacheUser(userInfo);
             }
-
-            return null;
-
+            return userInfo;
         }
         public async Task<bool> ChangeUsernameAsync(int userId, string newUsername, ModelStateDictionary modelState)
         {
             bool result = await _repository.ChangeUsernameAsync(userId, newUsername, modelState);
             if (!result)
+            {
                 modelState.AddModelError("UserId", "修改用户名失败，可能当前用户不存在或新用户名已经被使用");
+            }
             else
             {
-                //修改成功后清空数据缓存
-                string cacheKey = UserCacheKeyFormat.FormatWith(userId);
-                _cache.Remove(cacheKey);
+                await CleanCache(userId);
             }
             return result;
         }
@@ -228,12 +282,12 @@ namespace Tubumu.Modules.Admin.Services
         {
             bool result = await _repository.ChangeMobileAsync(userId, newMobile, modelState);
             if (!result)
+            {
                 modelState.AddModelError("UserId", "修改手机号失败，可能当前用户不存在或新手机号已经被使用");
+            }
             else
             {
-                //修改成功后清空数据缓存
-                string cacheKey = UserCacheKeyFormat.FormatWith(userId);
-                _cache.Remove(cacheKey);
+                await CleanCache(userId);
             }
             return result;
         }
@@ -241,43 +295,35 @@ namespace Tubumu.Modules.Admin.Services
         {
             bool result = await _repository.ChangeDisplayNameAsync(userId, newDisplayName);
             if (!result)
+            {
                 modelState.AddModelError("UserId", "修改昵称失败");
+            }
             else
             {
-                //修改成功后清空数据缓存
-                string cacheKey = UserCacheKeyFormat.FormatWith(userId);
-                _cache.Remove(cacheKey);
+                await CleanCache(userId);
             }
             return result;
         }
-
         public async Task<bool> ChangeLogoAsync(int userId, string logoUrl, ModelStateDictionary modelState)
         {
             bool result = await _repository.ChangeLogoAsync(userId, logoUrl);
             if (!result)
+            {
                 modelState.AddModelError("UserId", "修改头像失败");
+            }
             else
             {
-                //修改成功后清空数据缓存
-                string cacheKey = UserCacheKeyFormat.FormatWith(userId);
-                _cache.Remove(cacheKey);
+                await CleanCache(userId);
             }
             return result;
         }
-
-        public async Task<bool> ChangePasswordAsync(int userId, string rawPassword, ModelStateDictionary modelState)
+        public async Task<bool> ChangePasswordAsync(int userId, string newPassword, ModelStateDictionary modelState)
         {
-            string newPassword = UserRepository.GeneratePassword(rawPassword);
-            bool result = await _repository.ChangePasswordAsync(userId, newPassword);
-            if (!result)
+            var password = GeneratePassword(newPassword);
+            var result = await _repository.ChangePasswordAsync(userId, password, modelState);
+            if (result)
             {
-                modelState.AddModelError("UserId", "修改密码失败，可能当前用户不存在");
-            }
-            else
-            {
-                //修改成功后清空数据缓存
-                string cacheKey = UserCacheKeyFormat.FormatWith(userId);
-                _cache.Remove(cacheKey);
+                await CleanCache(userId);
             }
             return result;
         }
@@ -290,25 +336,21 @@ namespace Tubumu.Modules.Admin.Services
             }
             else
             {
-                //修改成功后清空数据缓存
-                string cacheKey = UserCacheKeyFormat.FormatWith(userId);
-                _cache.Remove(cacheKey);
+                await CleanCache(userId);
             }
             return result;
 
         }
-        public async Task<bool> ResetPasswordByMobileAsync(string username, string rawPassword, ModelStateDictionary modelState)
+        public async Task<bool> ResetPasswordByAccountAsync(string account, string newPassword, ModelStateDictionary modelState)
         {
-            string newPassword = UserRepository.GeneratePassword(rawPassword);
-            int userId = await _repository.ResetPasswordByMobileAsync(username, newPassword, modelState);
+            var password = GeneratePassword(newPassword);
+            var userId = await _repository.ResetPasswordByAccountAsync(account, password, modelState);
             if (userId <= 0 || !modelState.IsValid)
             {
                 return false;
             }
 
-            //修改成功后清空数据缓存
-            string cacheKey = UserCacheKeyFormat.FormatWith(userId);
-            _cache.Remove(cacheKey);
+            await CleanCache(userId);
             return true;
         }
         public async Task<bool> GetPasswordAsync(UserGetPasswordInput input, ModelStateDictionary modelState)
@@ -344,110 +386,129 @@ namespace Tubumu.Modules.Admin.Services
                 modelState.AddModelError("Email", "该邮箱不是您设置的安全邮箱");
                 return false;
             }
+
             //重置密码
             string newPassword = GenerateRandomPassword(6);
-            string password = UserRepository.GeneratePassword(newPassword);
-            int userId = await _repository.ChangePasswordAsync(input.Username, password);
-            if (userId <= 0)
+            string password = GeneratePassword(newPassword);
+            int userId = await _repository.ChangePasswordAsync(input.Username, password, modelState);
+            if (userId <= 0 || !modelState.IsValid)
+            {
                 modelState.AddModelError("Username", "该用户不存在");
+            }
             else
             {
-                //修改成功后清空数据缓存
-                string cacheKey = UserCacheKeyFormat.FormatWith(userInfo.UserId);
-                _cache.Remove(cacheKey);
+                await CleanCache(userId);
             }
-            //发送邮件
-            //string body = String.Format("Hi {0}!<br/><br/>"
-            //    + "&nbsp;&nbsp;&nbsp;&nbsp;您在www.ebo.so上的管理密码已经成功重置：<br/>"
-            //    + "&nbsp;&nbsp;&nbsp;&nbsp;用户名：{1}<br/>"
-            //    + "&nbsp;&nbsp;&nbsp;&nbsp;新密码：{2}<br/>"
-            //    + "&nbsp;&nbsp;&nbsp;&nbsp;安全邮箱：{3}<br/><br/>"
-            //    + "&nbsp;&nbsp;&nbsp;&nbsp;请保管好您的新密码，<a href=\"http://www.eliu.so/manager\">马上进行登录</a>。"
-            //    , userInfo.DisplayName, userInfo.Username, newPassword, userInfo.Email);
 
-            /*
-            string body = String.Format(_appSettings.GetString("GetPasswordMessage")
-                , userInfo.DisplayName
-                , userInfo.Username
-                , newPassword
-                , userInfo.Email);
-            _smtpMailModule.SendMail(input.Email, "管理帐号密码重置", body);
-            */
+            // TODO: 发送短信或邮件
 
             return true;
 
         }
         public async Task<bool> ChangeHeadAsync(int userId, string newHead)
         {
-            return await _repository.ChangeHeadAsync(userId, newHead);
+            var result = await _repository.ChangeHeadAsync(userId, newHead);
+            if (result)
+            {
+                await CleanCache(userId);
+            }
+            return result;
         }
         public async Task<bool> RemoveAsync(int userId, ModelStateDictionary modelState)
         {
-            bool removedUser = await _repository.RemoveAsync(userId, modelState);
-            if (removedUser)
+            var result = await _repository.RemoveAsync(userId, modelState);
+            if (result)
             {
-                //删除成功后清空数据缓存
-                string cacheKey = UserCacheKeyFormat.FormatWith(userId);
-                _cache.Remove(cacheKey);
+                await CleanCache(userId);
             }
-            return removedUser;
+            return result;
         }
-        /// <summary>
-        /// 改变用户状态
-        /// </summary>
-        /// <param name="userId"></param>
-        /// <param name="status"></param>
-        /// <returns></returns>
         public async Task<bool> ChangeStatusAsync(int userId, UserStatus status)
         {
-            return await _repository.ChangeStatusAsync(userId, status);
+            var result = await _repository.ChangeStatusAsync(userId, status);
+            if (result)
+            {
+                await CleanCache(userId);
+            }
+            return result;
         }
         public async Task<bool> UpdateClientAgentAsync(int userId, String clientAgent, String ip)
         {
-            return await _repository.UpdateClientAgentAsync(userId, clientAgent, ip);
+            var result = await _repository.UpdateClientAgentAsync(userId, clientAgent, ip);
+            if (result)
+            {
+                await CleanCache(userId);
+            }
+            return result;
         }
         public async Task<bool> UpdateTokenAsync(int userId, String token)
         {
-            return await _repository.UpdateTokenAsync(userId, token);
+            var result = await _repository.UpdateTokenAsync(userId, token);
+            if (result)
+            {
+                await CleanCache(userId);
+            }
+            return result;
         }
         public async Task<bool> UpdateWeiXinOpenIdAsync(int userId, String wxOpenId, ModelStateDictionary modelState)
         {
-            return await _repository.UpdateWeiXinOpenIdAsync(userId, wxOpenId, modelState);
+            var result = await _repository.UpdateWeiXinOpenIdAsync(userId, wxOpenId, modelState);
+            if (result)
+            {
+                await CleanCache(userId);
+            }
+            return result;
         }
         public async Task<bool> CleanWeiXinOpenIdAsync(int userId)
         {
-            return await _repository.CleanWeiXinOpenIdAsync(userId);
+            var result = await _repository.CleanWeiXinOpenIdAsync(userId);
+            if (result)
+            {
+                await CleanCache(userId);
+            }
+            return result;
         }
         public async Task<bool> UpdateWeiXinAppOpenIdAsync(int userId, String wxaOpenId, ModelStateDictionary modelState)
         {
-            return await _repository.UpdateWeiXinAppOpenIdAsync(userId, wxaOpenId, modelState);
+            var result = await _repository.UpdateWeiXinAppOpenIdAsync(userId, wxaOpenId, modelState);
+            if (result)
+            {
+                await CleanCache(userId);
+            }
+            return result;
         }
         public async Task<bool> CleanWeiXinAppOpenIdAsync(int userId)
         {
-            return await _repository.CleanWeiXinAppOpenIdAsync(userId);
+            var result = await _repository.CleanWeiXinAppOpenIdAsync(userId);
+            if (result)
+            {
+                await CleanCache(userId);
+            }
+            return result;
         }
         public async Task<bool> ClearClientAgentAsync(int userId, String clientAgent, String uuid)
         {
-            return await _repository.ClearClientAgentAsync(userId, clientAgent);
+            var result = await _repository.ClearClientAgentAsync(userId, clientAgent);
+            if (result)
+            {
+                await CleanCache(userId);
+            }
+            return result;
         }
         public async Task<bool> SignInAsync(Func<Task<UserInfo>> getUser, Action<UserInfo> afterSignIn = null)
         {
-            UserInfo user = await getUser();
+            var user = await getUser();
             if (user != null)
             {
-                // 登录成功后将数据缓存
-                string cacheKey = UserCacheKeyFormat.FormatWith(user.UserId);
-                _cache.Remove(cacheKey);
-                afterSignIn?.Invoke(user);
-
+                await CleanCache(user.UserId);
                 return true;
             }
 
             return false;
         }
-        public async Task<bool> SignOutAsync()
+        public async Task<bool> SignOutAsync(int userId)
         {
-            await Task.Yield();
+            await CleanCache(userId);
             return true;
         }
         public async Task<bool> GetMobileValidationCodeAsync(GetMobileValidationCodeInput getMobileValidationCodeInput, ModelStateDictionary modelState)
@@ -476,6 +537,15 @@ namespace Tubumu.Modules.Admin.Services
         }
 
         #endregion
+
+        public static string GeneratePassword(string rawPassword)
+        {
+            if (rawPassword.IsNullOrWhiteSpace()) return String.Empty;
+            string passwordSalt = Guid.NewGuid().ToString("N");
+            string data = SHA256.Encrypt(rawPassword, passwordSalt);
+            return "{0}|{1}".FormatWith(passwordSalt, data);
+        }
+
         private static string GenerateRandomPassword(int pwdlen)
         {
             const string pwdChars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -501,6 +571,21 @@ namespace Tubumu.Modules.Admin.Services
                 }
                 criteria.GroupIds = newGroupIds;
             }
+        }
+
+        private async Task CacheUser(UserInfo userInfo)
+        {
+            var cacheKey = UserCacheKeyFormat.FormatWith(userInfo.UserId);
+            await _cache.SetJsonAsync<UserInfo>(cacheKey, userInfo, new DistributedCacheEntryOptions
+            {
+                SlidingExpiration = TimeSpan.FromDays(1)
+            });
+        }
+
+        private async Task CleanCache(int userId)
+        {
+            var cacheKey = UserCacheKeyFormat.FormatWith(userId);
+            await _cache.RemoveAsync(cacheKey);
         }
 
         private async Task<UserInfo> GetNormalItemByUserIdInCacheInternalAsync(int userId)

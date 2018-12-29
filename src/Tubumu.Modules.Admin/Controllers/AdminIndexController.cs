@@ -25,13 +25,7 @@ namespace Tubumu.Modules.Admin.Controllers
         public async Task<ApiItemResult> GetProfile()
         {
             var result = new ApiItemResult();
-            if (!int.TryParse(HttpContext.User.Identity.Name, out var value))
-            {
-                result.Code = 400;
-                result.Message = "获取用户失败: 认证失败";
-                return result;
-            }
-            var userInfo = await _userService.GetItemByUserIdAsync(value, UserStatus.Normal);
+            var userInfo = await _userService.GetItemByUserIdAsync(HttpContext.User.GetUserId(), UserStatus.Normal);
             if(userInfo == null)
             {
                 result.Code = 400;
@@ -64,12 +58,7 @@ namespace Tubumu.Modules.Admin.Controllers
         public async Task<ApiResult> ChangeProfile([FromBody]UserChangeProfileInput input)
         {
             var result = new ApiResult();
-            if (!int.TryParse(HttpContext.User.Identity.Name, out var value))
-            {
-                result.Code = 400;
-                result.Message = "修改资料失败: 获取用户信息失败";
-            }
-            var changeProfileResult = await _adminUserService.ChangeProfileAsync(value, input, ModelState);
+            var changeProfileResult = await _adminUserService.ChangeProfileAsync(HttpContext.User.GetUserId(), input, ModelState);
             if (!changeProfileResult)
             {
                 result.Code = 400;
@@ -99,7 +88,7 @@ namespace Tubumu.Modules.Admin.Controllers
                 result.Message = "修改资料失败: 获取用户信息失败";
             }
            
-            if (!await _adminUserService.ChangePasswordAsync(value, input, ModelState))
+            if (!await _adminUserService.ChangePasswordAsync(HttpContext.User.GetUserId(), input, ModelState))
             {
                 result.Code = 400;
                 result.Message = "修改密码失败" + ModelState.FirstErrorMessage();

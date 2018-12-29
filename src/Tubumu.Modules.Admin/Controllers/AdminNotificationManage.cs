@@ -40,8 +40,7 @@ namespace Tubumu.Modules.Admin.Controllers
         [PermissionAuthorize(Permissions = "通知管理")]
         public async Task<ApiResult> AddNotification([FromBody]NotificationInput notificationInput)
         {
-            var userId = int.Parse(HttpContext.User.Identity.Name);
-            notificationInput.FromUserId = userId;
+            notificationInput.FromUserId = HttpContext.User.GetUserId();
             var result = new ApiResult();
             if (notificationInput.NotificationId.HasValue)
             {
@@ -70,8 +69,7 @@ namespace Tubumu.Modules.Admin.Controllers
         [PermissionAuthorize(Permissions = "通知管理")]
         public async Task<object> EditNotification([FromBody]NotificationInput notificationInput)
         {
-            var userId = int.Parse(HttpContext.User.Identity.Name);
-            notificationInput.FromUserId = userId;
+            notificationInput.FromUserId = HttpContext.User.GetUserId();
             var result = new ApiResult();
             if (!notificationInput.NotificationId.HasValue)
             {

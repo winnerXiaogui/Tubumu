@@ -13,6 +13,7 @@ using Tubumu.Modules.Admin.Hubs;
 using Tubumu.Modules.Admin.ModuleMenus;
 using Tubumu.Modules.Admin.Repositories;
 using Tubumu.Modules.Admin.Services;
+using Tubumu.Modules.Admin.Settings;
 using Tubumu.Modules.Framework.Authorization;
 using Tubumu.Modules.Framework.Services;
 
@@ -67,6 +68,9 @@ namespace Tubumu.Modules.Admin
 
             // SubMail 短信发送接口参数配置
             services.Configure<SubMailSmsSettings>(_configuration.GetSection("SubMailSmsSettings"));
+
+            // 认证设置
+            services.Configure<AuthenticationSettings>(_configuration.GetSection("AuthenticationSettings"));
         }
 
         public override void Configure(IApplicationBuilder app, IRouteBuilder routes, IServiceProvider serviceProvider)

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Tubumu.Modules.Admin.Models;
+using Tubumu.Modules.Framework.Authorization;
 using Tubumu.Modules.Framework.Extensions;
 using Tubumu.Modules.Framework.Models;
 
@@ -19,8 +20,7 @@ namespace Tubumu.Modules.Admin.Controllers
         [HttpPost("GetNotifications")]
         public async Task<ApiResult> GetNotifications([FromBody]NotificationSearchCriteria criteria)
         {
-            int userId = int.Parse(HttpContext.User.Identity.Name);
-            criteria.ToUserId = userId;
+            criteria.ToUserId = HttpContext.User.GetUserId();
             var page = await _notificationService.GetPageAsync(criteria);
             var result = new ApiPageResult
             {
@@ -61,9 +61,8 @@ namespace Tubumu.Modules.Admin.Controllers
         [HttpPost("DeleteNotifications")]
         public async Task<ApiResult> DeleteNotifications([FromBody]NotificationIdListInput notificationIdListInput)
         {
-            int userId = int.Parse(HttpContext.User.Identity.Name);
             var result = new ApiResult();
-            if (!ModelState.IsValid || !await _notificationService.DeleteAsync(userId, notificationIdListInput.NotificationIds, ModelState))
+            if (!ModelState.IsValid || !await _notificationService.DeleteAsync(HttpContext.User.GetUserId(), notificationIdListInput.NotificationIds, ModelState))
             {
                 result.Code = 400;
                 result.Message = "删除失败：" + ModelState.FirstErrorMessage();
