@@ -64,6 +64,9 @@ namespace Tubumu.Modules.Admin
 
             // Frontend
             services.Configure<FrontendSettings>(_configuration.GetSection("FrontendSettings"));
+
+            // SubMail 短信发送接口参数配置
+            services.Configure<SubMailSmsSettings>(_configuration.GetSection("SubMailSmsSettings"));
         }
 
         public override void Configure(IApplicationBuilder app, IRouteBuilder routes, IServiceProvider serviceProvider)
