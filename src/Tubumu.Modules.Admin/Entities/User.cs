@@ -35,8 +35,10 @@ namespace Tubumu.Modules.Admin.Entities
         public string Description { get; set; }
         public string ClientAgent { get; set; }
         public string Token { get; set; }
-        public string WeiXinOpenId { get; set; }
-        public string WeiXinAppOpenId { get; set; }
+        public string WeixinUnionId {get;set;}
+        public string WeixinWebOpenId { get; set; }
+        public string WeixinMobileOpenId { get; set; }
+        public string WeixinAppOpenId { get; set; }
         public bool IsDeveloper { get; set; }
         public bool IsTester { get; set; }
         public byte[] RowVersion { get; set; }

@@ -21,11 +21,11 @@ namespace Tubumu.Modules.Admin.Services
             }
             else if (IsValidMobile(account))
             {
-                userInfo = await userService.GetItemByMobileAsync(account, UserStatus.Normal);
+                userInfo = await userService.GetItemByMobileAsync(account, true, UserStatus.Normal);
             }
             else if (IsValidEmail(account))
             {
-                userInfo = await userService.GetItemByEmailAsync(account, UserStatus.Normal);
+                userInfo = await userService.GetItemByEmailAsync(account, true, UserStatus.Normal);
             }
 
             if (userInfo == null || userInfo.Password.IsNullOrWhiteSpace()) return null;

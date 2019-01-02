@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Tubumu.Modules.Admin.Models.InputModels
+namespace Tubumu.Modules.Admin.Models.Input
 {
     public class TokenInput
     {

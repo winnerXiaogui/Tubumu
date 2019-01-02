@@ -43,8 +43,8 @@ namespace Tubumu.Modules.Admin.Models
         public bool MobileIsValid { get; set; }
         public string HeadUrl { get; set; }
         public string Token { get; set; }
-        public bool IsBindedToWeiXin { get; set; }
-        public bool IsBindedToWeiXinApp { get; set; }
+        public bool IsBindedToWeixin { get; set; }
+        public bool IsBindedToWeixinApp { get; set; }
         // public IEnumerable<string> Permissions { get; set; }
         // TODO: Group Role, etc.
     }
@@ -71,8 +71,10 @@ namespace Tubumu.Modules.Admin.Models
         public DateTime CreationDate { get; set; }
         public string HeadUrl { get; set; }
         public string Token { get; set; }
-        public string WeiXinOpenId { get; set; }
-        public string WeiXinAppOpenId { get; set; }
+        public string WeixinMobileOpenId { get; set; }
+        public string WeixinAppOpenId { get; set; }
+        public string WeixinWebOpenId { get; set; }
+        public string WeixinUnionId { get; set; }
         public bool IsDeveloper { get; set; }
         public bool IsTester { get; set; }
 

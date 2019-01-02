@@ -272,9 +272,13 @@ namespace Tubumu.Modules.Admin.Entities
                     .IsRequired()
                     .HasMaxLength(20);
 
-                entity.Property(e => e.WeiXinAppOpenId).HasMaxLength(50);
+                entity.Property(e => e.WeixinAppOpenId).HasMaxLength(50);
 
-                entity.Property(e => e.WeiXinOpenId).HasMaxLength(50);
+                entity.Property(e => e.WeixinMobileOpenId).HasMaxLength(50);
+
+                entity.Property(e => e.WeixinWebOpenId).HasMaxLength(50);
+
+                entity.Property(e => e.WeixinUnionId).HasMaxLength(50);
 
                 entity.HasOne(d => d.Group)
                     .WithMany(p => p.User)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
@@ -7,8 +8,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
+using Senparc.Weixin.Exceptions;
+using Senparc.Weixin.Open.QRConnect;
+using Senparc.Weixin.WxOpen.AdvancedAPIs.Sns;
+using Senparc.Weixin.WxOpen.Entities;
 using Tubumu.Modules.Admin.Models;
-using Tubumu.Modules.Admin.Models.InputModels;
+using Tubumu.Modules.Admin.Models.Input;
 using Tubumu.Modules.Admin.Repositories;
 using Tubumu.Modules.Admin.Settings;
 using Tubumu.Modules.Framework.Extensions;
@@ -22,28 +27,19 @@ namespace Tubumu.Modules.Admin.Services
     {
         Task<UserInfo> GetItemByUserIdAsync(int userId, UserStatus? status = null);
         Task<UserInfo> GetItemByUsernameAsync(string username, UserStatus? status = null);
-        Task<UserInfo> GetItemByMobileAsync(string mobile, UserStatus? status = null);
-        Task<UserInfo> GetItemByEmailAsync(string email, UserStatus? status = null);
-        Task<UserInfo> GetItemByWeiXinOpenIdAsync(string wxOpenId);
-        Task<UserInfo> GetItemByWeiXinAppOpenIdAsync(string wxaOpenId);
-        Task<UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(Guid groupId, UserStatus status, string wxOpenId, string mobile = null, string displayName = null);
-        Task<UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(Guid groupId, UserStatus status, string wxaOpenId, string mobile = null, string displayName = null);
-        Task<UserInfo> GenerateItemAsync(Guid groupId, UserStatus status, MobilePassswordValidationCodeRegisterInput input, ModelStateDictionary modelState);
-        Task<bool> ResetPasswordAsync(MobileResetPassswordInput input, ModelStateDictionary modelState);
+        Task<UserInfo> GetItemByEmailAsync(string email, bool emailIsValid = true, UserStatus? status = null);
+        Task<UserInfo> GetItemByMobileAsync(string mobile, bool mobileIsValid, UserStatus? status = null);
         Task<List<UserInfoWarpper>> GetUserInfoWarpperListAsync(IEnumerable<int> userIds);
         Task<string> GetHeadUrlAsync(int userId);
         Task<bool> IsExistsAsync(int userId, UserStatus? status = null);
         Task<bool> IsExistsUsernameAsync(string username);
-        Task<bool> IsExistsMobileAsync(string mobile);
         Task<bool> IsExistsEmailAsync(string username);
         Task<bool> VerifyExistsUsernameAsync(int userId, string username);
-        Task<bool> VerifyExistsMobileAsync(int userId, string mobile);
         Task<bool> VerifyExistsEmailAsync(int userId, string email);
         Task<bool> VerifyExistsAsync(UserInput userInput, ModelStateDictionary modelState);
         Task<Page<UserInfo>> GetPageAsync(UserSearchCriteria criteria);
         Task<UserInfo> SaveAsync(UserInput userInput, ModelStateDictionary modelState);
         Task<bool> ChangeUsernameAsync(int userId, string newUsername, ModelStateDictionary modelState);
-        Task<bool> ChangeMobileAsync(int userId, string newMobile, ModelStateDictionary modelState);
         Task<bool> ChangeDisplayNameAsync(int userId, string newDisplayName, ModelStateDictionary modelState);
         Task<bool> ChangeLogoAsync(int userId, string logoUrl, ModelStateDictionary modelState);
         Task<bool> ChangePasswordAsync(int userId, string newPassword, ModelStateDictionary modelState);
@@ -55,36 +51,29 @@ namespace Tubumu.Modules.Admin.Services
         Task<bool> ChangeStatusAsync(int userId, UserStatus status);
         Task<bool> UpdateClientAgentAsync(int userId, String clientAgent, String ip);
         Task<bool> UpdateTokenAsync(int userId, String token);
-        Task<bool> UpdateWeiXinOpenIdAsync(int userId, String wxOpenId, ModelStateDictionary modelState);
-        Task<bool> CleanWeiXinOpenIdAsync(int userId);
-        Task<bool> UpdateWeiXinAppOpenIdAsync(int userId, String wxaOpenId, ModelStateDictionary modelState);
-        Task<bool> CleanWeiXinAppOpenIdAsync(int userId);
         Task<bool> ClearClientAgentAsync(int userId, String clientAgent, String uuid);
         Task<bool> SignInAsync(Func<Task<UserInfo>> getUser, Action<UserInfo> afterSignIn = null);
         Task<bool> SignOutAsync(int userId);
-        Task<bool> GetMobileValidationCodeAsync(GetMobileValidationCodeInput getMobileValidationCodeInput, ModelStateDictionary modelState);
-        Task<bool> VerifyMobileValidationCodeAsync(VerifyMobileValidationCodeInput verifyMobileValidationCodeInput, ModelStateDictionary modelState, string defaultCode = null);
-        Task<bool> FinishVerifyMobileValidationCodeAsync(string mobile, MobileValidationCodeType type, ModelStateDictionary modelState);
     }
+
     public class UserService : IUserService
     {
-        private readonly MobileValidationCodeSettings _mobileValidationCodeSettings;
         private readonly IDistributedCache _cache;
         private readonly IUserRepository _repository;
         private readonly IGroupService _groupService;
-        private readonly ISmsSender _smsSender;
 
-        private const string UserCacheKeyFormat = "User:{0}";
-        private const string MobileValidationCodeCacheKeyFormat = "MobileValidationCode:{0}";
+        public const string UserCacheKeyFormat = "User:{0}";
 
-        public UserService(IOptions<MobileValidationCodeSettings> mobileValidationCodeSettingsOptions, IDistributedCache cache, IUserRepository repository, IGroupService groupService, ISmsSender smsSender
+        public UserService(
+            IDistributedCache cache,
+            IUserRepository repository,
+            IGroupService groupService,
+            ISmsSender smsSender
             )
         {
-            _mobileValidationCodeSettings = mobileValidationCodeSettingsOptions.Value;
             _cache = cache;
             _repository = repository;
             _groupService = groupService;
-            _smsSender = smsSender;
         }
 
         #region IUserService Members
@@ -107,84 +96,25 @@ namespace Tubumu.Modules.Admin.Services
             }
             return userInfo;
         }
-        public async Task<UserInfo> GetItemByMobileAsync(string mobile, UserStatus? status = null)
-        {
-            if (mobile.IsNullOrWhiteSpace()) return null;
-            var userInfo = await _repository.GetItemByMobileAsync(mobile, status);
-            if (userInfo != null && userInfo.Status == UserStatus.Normal)
-            {
-                await CacheUser(userInfo);
-            }
-            return userInfo;
-        }
-        public async Task<UserInfo> GetItemByEmailAsync(string email, UserStatus? status = null)
+        public async Task<UserInfo> GetItemByEmailAsync(string email, bool emailIsValid = true, UserStatus? status = null)
         {
             if (email.IsNullOrWhiteSpace()) return null;
-            var userInfo = await _repository.GetItemByEmailAsync(email, status);
+            var userInfo = await _repository.GetItemByEmailAsync(email, emailIsValid, status);
             if (userInfo != null && userInfo.Status == UserStatus.Normal)
             {
                 await CacheUser(userInfo);
             }
             return userInfo;
         }
-        public async Task<UserInfo> GetItemByWeiXinOpenIdAsync(string wxOpenId)
+        public async Task<UserInfo> GetItemByMobileAsync(string mobile, bool mobileIsValid = true, UserStatus? status = null)
         {
-            var userInfo = await _repository.GetItemByWeiXinOpenIdAsync(wxOpenId);
+            if (mobile.IsNullOrWhiteSpace()) return null;
+            var userInfo = await _repository.GetItemByMobileAsync(mobile, mobileIsValid, status);
             if (userInfo != null && userInfo.Status == UserStatus.Normal)
             {
                 await CacheUser(userInfo);
             }
             return userInfo;
-        }
-        public async Task<UserInfo> GetItemByWeiXinAppOpenIdAsync(string wxaOpenId)
-        {
-            var userInfo = await _repository.GetItemByWeiXinAppOpenIdAsync(wxaOpenId);
-            if (userInfo != null && userInfo.Status == UserStatus.Normal)
-            {
-                await CacheUser(userInfo);
-            }
-            return userInfo;
-        }
-        public async Task<UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(Guid groupId, UserStatus status, string wxOpenId, string mobile, string displayName = null)
-        {
-            var userInfo = await _repository.GetOrGenerateNormalItemByWeiXinOpenIdAsync(groupId, wxOpenId, mobile, displayName);
-            if (userInfo != null && userInfo.Status == UserStatus.Normal)
-            {
-                await CacheUser(userInfo);
-            }
-            return userInfo;
-        }
-        public async Task<UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(Guid groupId, UserStatus status, string wxaOpenId, string mobile, string displayName = null)
-        {
-            var userInfo = await _repository.GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(groupId, wxaOpenId, mobile, displayName);
-            if (userInfo != null && userInfo.Status == UserStatus.Normal)
-            {
-                await CacheUser(userInfo);
-            }
-            return userInfo;
-        }
-        public async Task<UserInfo> GenerateItemAsync(Guid groupId, UserStatus status, MobilePassswordValidationCodeRegisterInput input, ModelStateDictionary modelState)
-        {
-            // 密码加密
-            var password = GeneratePassword(input.Password);
-            var userInfo = await _repository.GenerateItemAsync(groupId, status, input.Mobile, password, modelState);
-            if (userInfo != null && userInfo.Status == UserStatus.Normal)
-            {
-                await CacheUser(userInfo);
-            }
-            return userInfo;
-        }
-        public async Task<bool> ResetPasswordAsync(MobileResetPassswordInput input, ModelStateDictionary modelState)
-        {
-            // 密码加密
-            var password = GeneratePassword(input.Password);
-            var userId = await _repository.ResetPasswordAsync(input.Mobile, password, modelState);
-            if (userId <= 0 || !modelState.IsValid)
-            {
-                return false;
-            }
-            await CleanCache(userId);
-            return true;
         }
         public async Task<List<UserInfoWarpper>> GetUserInfoWarpperListAsync(IEnumerable<int> userIds)
         {
@@ -203,11 +133,6 @@ namespace Tubumu.Modules.Admin.Services
             if (username.IsNullOrWhiteSpace()) return false;
             return await _repository.IsExistsUsernameAsync(username);
         }
-        public async Task<bool> IsExistsMobileAsync(string mobile)
-        {
-            if (mobile.IsNullOrWhiteSpace()) return false;
-            return await _repository.IsExistsMobileAsync(mobile);
-        }
         public async Task<bool> IsExistsEmailAsync(string email)
         {
             if (email.IsNullOrWhiteSpace()) return false;
@@ -217,11 +142,6 @@ namespace Tubumu.Modules.Admin.Services
         {
             if (username.IsNullOrWhiteSpace()) return false;
             return await _repository.VerifyExistsUsernameAsync(userId, username);
-        }
-        public async Task<bool> VerifyExistsMobileAsync(int userId, string mobile)
-        {
-            if (mobile.IsNullOrWhiteSpace()) return false;
-            return await _repository.VerifyExistsMobileAsync(userId, mobile);
         }
         public async Task<bool> VerifyExistsEmailAsync(int userId, string email)
         {
@@ -277,19 +197,6 @@ namespace Tubumu.Modules.Admin.Services
             if (!result)
             {
                 modelState.AddModelError("UserId", "修改用户名失败，可能当前用户不存在或新用户名已经被使用");
-            }
-            else
-            {
-                await CleanCache(userId);
-            }
-            return result;
-        }
-        public async Task<bool> ChangeMobileAsync(int userId, string newMobile, ModelStateDictionary modelState)
-        {
-            bool result = await _repository.ChangeMobileAsync(userId, newMobile, modelState);
-            if (!result)
-            {
-                modelState.AddModelError("UserId", "修改手机号失败，可能当前用户不存在或新手机号已经被使用");
             }
             else
             {
@@ -456,42 +363,6 @@ namespace Tubumu.Modules.Admin.Services
             }
             return result;
         }
-        public async Task<bool> UpdateWeiXinOpenIdAsync(int userId, String wxOpenId, ModelStateDictionary modelState)
-        {
-            var result = await _repository.UpdateWeiXinOpenIdAsync(userId, wxOpenId, modelState);
-            if (result)
-            {
-                await CleanCache(userId);
-            }
-            return result;
-        }
-        public async Task<bool> CleanWeiXinOpenIdAsync(int userId)
-        {
-            var result = await _repository.CleanWeiXinOpenIdAsync(userId);
-            if (result)
-            {
-                await CleanCache(userId);
-            }
-            return result;
-        }
-        public async Task<bool> UpdateWeiXinAppOpenIdAsync(int userId, String wxaOpenId, ModelStateDictionary modelState)
-        {
-            var result = await _repository.UpdateWeiXinAppOpenIdAsync(userId, wxaOpenId, modelState);
-            if (result)
-            {
-                await CleanCache(userId);
-            }
-            return result;
-        }
-        public async Task<bool> CleanWeiXinAppOpenIdAsync(int userId)
-        {
-            var result = await _repository.CleanWeiXinAppOpenIdAsync(userId);
-            if (result)
-            {
-                await CleanCache(userId);
-            }
-            return result;
-        }
         public async Task<bool> ClearClientAgentAsync(int userId, String clientAgent, String uuid)
         {
             var result = await _repository.ClearClientAgentAsync(userId, clientAgent);
@@ -517,217 +388,8 @@ namespace Tubumu.Modules.Admin.Services
             await CleanCache(userId);
             return true;
         }
-        public async Task<bool> GetMobileValidationCodeAsync(GetMobileValidationCodeInput getMobileValidationCodeInput, ModelStateDictionary modelState)
-        {
-            if (getMobileValidationCodeInput.Type == MobileValidationCodeType.Register)
-            {
-                if (await _repository.IsExistsMobileAsync(getMobileValidationCodeInput.Mobile))
-                {
-                    modelState.AddModelError("Mobile", "手机号码已经被使用");
-                    return false;
-                }
-            }
-            else if (getMobileValidationCodeInput.Type == MobileValidationCodeType.Login || getMobileValidationCodeInput.Type == MobileValidationCodeType.ChangeMobile)
-            {
-                if (!await _repository.IsExistsMobileAsync(getMobileValidationCodeInput.Mobile))
-                {
-                    modelState.AddModelError("Mobile", "手机号码尚未注册");
-                    return false;
-                }
-            }
-
-            string validationCode = null;
-            var cacheKey = MobileValidationCodeCacheKeyFormat.FormatWith(getMobileValidationCodeInput.Mobile);
-            var mobileValidationCode = await _cache.GetJsonAsync<MobileValidationCode>(cacheKey);
-            var now = DateTime.Now;
-            if (mobileValidationCode != null)
-            {
-                if (now - mobileValidationCode.CreationDate < TimeSpan.FromSeconds(_mobileValidationCodeSettings.RequestInterval))
-                {
-                    modelState.AddModelError("Mobile", "请求过于频繁，请稍后再试");
-                    return false;
-                }
-
-                if (!mobileValidationCode.ValidationCode.IsNullOrWhiteSpace() &&
-                    mobileValidationCode.Type == getMobileValidationCodeInput.Type /* 验证码用途未发生更改 */ &&
-                    mobileValidationCode.ExpirationDate <= now /* 验证码没到期 */ &&
-                    mobileValidationCode.VerifyTimes < mobileValidationCode.MaxVerifyTimes /* 验证码在合理使用次数内 */)
-                {
-                    // 继续沿用之前的验证码
-                    validationCode = mobileValidationCode.ValidationCode;
-                }
-            }
-
-            if (validationCode == null)
-            {
-                validationCode = GenerateValidationCode(_mobileValidationCodeSettings.CodeLength);
-                mobileValidationCode = new MobileValidationCode
-                {
-                    Mobile = getMobileValidationCodeInput.Mobile,
-                    Type = getMobileValidationCodeInput.Type,
-                    ValidationCode = validationCode,
-                    ExpirationDate = now.AddSeconds(_mobileValidationCodeSettings.Expiration),
-                    MaxVerifyTimes = _mobileValidationCodeSettings.MaxVerifyTimes,
-                    VerifyTimes = 0,
-                    FinishVerifyDate = null,
-                    CreationDate = now,
-                };
-                await _cache.SetJsonAsync<MobileValidationCode>(cacheKey, mobileValidationCode, new DistributedCacheEntryOptions
-                {
-                    SlidingExpiration = TimeSpan.FromSeconds(_mobileValidationCodeSettings.Expiration)
-                });
-            }
-
-            return await _smsSender.SendAsync(getMobileValidationCodeInput.Mobile, validationCode, (_mobileValidationCodeSettings.Expiration / 60).ToString());
-        }
-        public async Task<bool> VerifyMobileValidationCodeAsync(VerifyMobileValidationCodeInput verifyMobileValidationCodeInput, ModelStateDictionary modelState, string defaultCode = null)
-        {
-            if (!defaultCode.IsNullOrWhiteSpace() && defaultCode.Equals(verifyMobileValidationCodeInput.ValidationCode, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return true;
-            }
-
-            var cacheKey = MobileValidationCodeCacheKeyFormat.FormatWith(verifyMobileValidationCodeInput.Mobile);
-            var mobileValidationCode = await _cache.GetJsonAsync<MobileValidationCode>(cacheKey);
-            var now = DateTime.Now;
-            if (mobileValidationCode == null)
-            {
-                modelState.AddModelError("Mobile", "尚未请求验证码");
-                return false;
-            }
-
-            mobileValidationCode.VerifyTimes++;
-            await _cache.SetJsonAsync<MobileValidationCode>(cacheKey, mobileValidationCode, new DistributedCacheEntryOptions
-            {
-                SlidingExpiration = TimeSpan.FromSeconds(_mobileValidationCodeSettings.Expiration)
-            });
-
-            if (mobileValidationCode.ValidationCode.IsNullOrWhiteSpace())
-            {
-                modelState.AddModelError("Mobile", "异常：尚未生成验证码");
-                return false;
-            }
-            if (mobileValidationCode.Type != verifyMobileValidationCodeInput.Type)
-            {
-                modelState.AddModelError("Mobile", "手机验证码类型错误，请重新请求");
-                return false;
-            }
-            if (mobileValidationCode.VerifyTimes > mobileValidationCode.MaxVerifyTimes)
-            {
-                modelState.AddModelError("Mobile", "手机验证码验证次数过多，请重新请求");
-                return false;
-            }
-            if (DateTime.Now > mobileValidationCode.ExpirationDate)
-            {
-                modelState.AddModelError("Mobile", "手机验证码已经过期，请重新请求");
-                return false;
-            }
-            if (mobileValidationCode.FinishVerifyDate != null)
-            {
-                modelState.AddModelError("Mobile", "手机验证码已经使用，请重新请求");
-                return false;
-            }
-            if (!mobileValidationCode.ValidationCode.Equals(verifyMobileValidationCodeInput.ValidationCode, StringComparison.InvariantCultureIgnoreCase))
-            {
-                modelState.AddModelError("Mobile", "手机验证码输入错误，请重新输入");
-                return false;
-            }
-
-            return true;
-        }
-        public async Task<bool> FinishVerifyMobileValidationCodeAsync(string mobile, MobileValidationCodeType type, ModelStateDictionary modelState)
-        {
-            var cacheKey = MobileValidationCodeCacheKeyFormat.FormatWith(mobile);
-            var mobileValidationCode = await _cache.GetJsonAsync<MobileValidationCode>(cacheKey);
-            if (mobileValidationCode == null || mobileValidationCode.ValidationCode.IsNullOrWhiteSpace())
-            {
-                modelState.AddModelError("Mobile", "尚未请求验证码");
-                return false;
-            }
-
-            mobileValidationCode.FinishVerifyDate = DateTime.Now;
-            await _cache.SetJsonAsync<MobileValidationCode>(cacheKey, mobileValidationCode, new DistributedCacheEntryOptions
-            {
-                SlidingExpiration = TimeSpan.FromSeconds(_mobileValidationCodeSettings.Expiration)
-            });
-            return true;
-        }
 
         #endregion
-
-        public static string GeneratePassword(string rawPassword)
-        {
-            if (rawPassword.IsNullOrWhiteSpace()) return String.Empty;
-            string passwordSalt = Guid.NewGuid().ToString("N");
-            string data = SHA256.Encrypt(rawPassword, passwordSalt);
-            return "{0}|{1}".FormatWith(passwordSalt, data);
-        }
-
-        private static string GenerateRandomPassword(int pwdlen)
-        {
-            const string pwdChars = "abcdefghijklmnopqrstuvwxyz0123456789";
-            string tmpstr = "";
-            var rnd = new Random();
-            for (int i = 0; i < pwdlen; i++)
-            {
-                int iRandNum = rnd.Next(pwdChars.Length);
-                tmpstr += pwdChars[iRandNum];
-            }
-            return tmpstr;
-        }
-
-        private string GenerateValidationCode(int codeLength)
-        {
-            int[] randMembers = new int[codeLength];
-            int[] validateNums = new int[codeLength];
-            string validateNumberStr = String.Empty;
-            //生成起始序列值
-            int seekSeek = unchecked((int)DateTime.Now.Ticks);
-            Random seekRand = new Random(seekSeek);
-            int beginSeek = (int)seekRand.Next(0, Int32.MaxValue - codeLength * 10000);
-            int[] seeks = new int[codeLength];
-            for (int i = 0; i < codeLength; i++)
-            {
-                beginSeek += 10000;
-                seeks[i] = beginSeek;
-            }
-            //生成随机数字
-            for (int i = 0; i < codeLength; i++)
-            {
-                var rand = new Random(seeks[i]);
-                int pownum = 1 * (int)Math.Pow(10, codeLength);
-                randMembers[i] = rand.Next(pownum, Int32.MaxValue);
-            }
-            //抽取随机数字
-            for (int i = 0; i < codeLength; i++)
-            {
-                string numStr = randMembers[i].ToString(CultureInfo.InvariantCulture);
-                int numLength = numStr.Length;
-                Random rand = new Random();
-                int numPosition = rand.Next(0, numLength - 1);
-                validateNums[i] = Int32.Parse(numStr.Substring(numPosition, 1));
-            }
-            //生成验证码
-            for (int i = 0; i < codeLength; i++)
-            {
-                validateNumberStr += validateNums[i].ToString();
-            }
-            return validateNumberStr;
-        }
-
-        private async Task GengerateGroupIdsAsync(UserSearchCriteria criteria)
-        {
-            if (!criteria.GroupIds.IsNullOrEmpty())
-            {
-                var newGroupIds = new List<Guid>();
-                foreach (var groupId in criteria.GroupIds)
-                {
-                    var groupIds = (await _groupService.GetListInCacheAsync(groupId)).Select(m => m.GroupId);
-                    newGroupIds.AddRange(groupIds);
-                }
-                criteria.GroupIds = newGroupIds;
-            }
-        }
 
         private async Task CacheUser(UserInfo userInfo)
         {
@@ -742,6 +404,41 @@ namespace Tubumu.Modules.Admin.Services
         {
             var cacheKey = UserCacheKeyFormat.FormatWith(userId);
             await _cache.RemoveAsync(cacheKey);
+        }
+
+        public static string GeneratePassword(string rawPassword)
+        {
+            if (rawPassword.IsNullOrWhiteSpace()) return String.Empty;
+            string passwordSalt = Guid.NewGuid().ToString("N");
+            string data = SHA256.Encrypt(rawPassword, passwordSalt);
+            return "{0}|{1}".FormatWith(passwordSalt, data);
+        }
+
+        public static string GenerateRandomPassword(int pwdlen)
+        {
+            const string pwdChars = "abcdefghijklmnopqrstuvwxyz0123456789";
+            string tmpstr = "";
+            var rnd = new Random();
+            for (int i = 0; i < pwdlen; i++)
+            {
+                int iRandNum = rnd.Next(pwdChars.Length);
+                tmpstr += pwdChars[iRandNum];
+            }
+            return tmpstr;
+        }
+
+        private async Task GengerateGroupIdsAsync(UserSearchCriteria criteria)
+        {
+            if (!criteria.GroupIds.IsNullOrEmpty())
+            {
+                var newGroupIds = new List<Guid>();
+                foreach (var groupId in criteria.GroupIds)
+                {
+                    var groupIds = (await _groupService.GetListInCacheAsync(groupId)).Select(m => m.GroupId);
+                    newGroupIds.AddRange(groupIds);
+                }
+                criteria.GroupIds = newGroupIds;
+            }
         }
 
         private async Task<UserInfo> GetNormalItemByUserIdInCacheInternalAsync(int userId)

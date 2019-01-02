@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Tubumu.Modules.Admin.Models.InputModels
+namespace Tubumu.Modules.Admin.Models.Input
 {
     public class UserInputAdd : UserInput
     {

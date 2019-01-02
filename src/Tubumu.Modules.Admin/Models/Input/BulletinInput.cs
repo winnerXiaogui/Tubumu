@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 
-namespace Tubumu.Modules.Admin.Models.InputModels
+namespace Tubumu.Modules.Admin.Models.Input
 {
     public class BulletinInput
     {

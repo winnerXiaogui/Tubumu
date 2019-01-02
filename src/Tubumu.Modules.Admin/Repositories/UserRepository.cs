@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Tubumu.Modules.Admin.Entities;
-using Tubumu.Modules.Admin.Models.InputModels;
+using Tubumu.Modules.Admin.Models.Input;
 using Tubumu.Modules.Framework.Extensions;
 using Tubumu.Modules.Framework.Utilities.Cryptography;
 using Tubumu.Modules.Framework.Models;
@@ -20,29 +20,19 @@ namespace Tubumu.Modules.Admin.Repositories
     {
         Task<XM.UserInfo> GetItemByUserIdAsync(int userId, XM.UserStatus? status = null);
         Task<XM.UserInfo> GetItemByUsernameAsync(string username, XM.UserStatus? status = null);
-        Task<XM.UserInfo> GetItemByMobileAsync(string mobile, XM.UserStatus? status = null);
-        Task<XM.UserInfo> GetItemByEmailAsync(string email, XM.UserStatus? status = null);
-        Task<XM.UserInfo> GetItemByWeiXinOpenIdAsync(string wxOpenId);
-        Task<XM.UserInfo> GetItemByWeiXinAppOpenIdAsync(string wxaOpenId);
-        Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(Guid groupId, string wxOpenId, string mobile = null, string displayName = null);
-        Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(Guid groupId, string wxaOpenId, string mobile = null, string displayName = null);
-        Task<XM.UserInfo> GenerateItemAsync(Guid groupId, XM.UserStatus status, string mobile, string password, ModelStateDictionary modelState);
-        Task<int> ResetPasswordAsync(string mobile, string password, ModelStateDictionary modelState);
+        Task<XM.UserInfo> GetItemByEmailAsync(string email, bool emailIsValid = true, XM.UserStatus? status = null);
+        Task<XM.UserInfo> GetItemByMobileAsync(string mobile, bool mobileIsValid = true, XM.UserStatus? status = null);
         Task<string> GetHeadUrlAsync(int userId);
         Task<List<XM.UserInfoWarpper>> GetUserInfoWarpperListAsync(IEnumerable<int> userIds);
         Task<bool> IsExistsUsernameAsync(string username);
-        Task<bool> IsExistsMobileAsync(string mobile);
         Task<bool> IsExistsEmailAsync(string email);
-        Task<bool> IsExistsMobilesAsync(IEnumerable<string> mobiles);
         Task<bool> IsExistsAsync(int userId, XM.UserStatus? status = null);
         Task<bool> VerifyExistsUsernameAsync(int userId, string username);
-        Task<bool> VerifyExistsMobileAsync(int userId, string mobile);
         Task<bool> VerifyExistsEmailAsync(int userId, string email);
         Task<bool> VerifyExistsAsync(UserInput userInput, ModelStateDictionary modelState);
         Task<Page<XM.UserInfo>> GetPageAsync(XM.UserSearchCriteria criteria);
         Task<XM.UserInfo> SaveAsync(UserInput userInput, ModelStateDictionary modelState);
         Task<bool> ChangeUsernameAsync(int userId, string newUsername, ModelStateDictionary modelState);
-        Task<bool> ChangeMobileAsync(int userId, string newMobile, ModelStateDictionary modelState);
         Task<bool> ChangeDisplayNameAsync(int userId, string newDisplayName);
         Task<bool> ChangeLogoAsync(int userId, string logoURL);
         Task<bool> ChangePasswordAsync(int userId, string newPassword, ModelStateDictionary modelState);
@@ -54,21 +44,11 @@ namespace Tubumu.Modules.Admin.Repositories
         Task<bool> ChangeStatusAsync(int userId, XM.UserStatus status);
         Task<bool> UpdateClientAgentAsync(int userId, String clientAgent, String ip);
         Task<bool> UpdateTokenAsync(int userId, String token);
-        Task<bool> UpdateWeiXinOpenIdAsync(int userId, String wxOpenId, ModelStateDictionary modelState);
-        Task<bool> CleanWeiXinOpenIdAsync(int userId);
-        Task<bool> UpdateWeiXinAppOpenIdAsync(int userId, String wxaOpenId, ModelStateDictionary modelState);
-        Task<bool> CleanWeiXinAppOpenIdAsync(int userId);
         Task<bool> ClearClientAgentAsync(int userId, String clientAgent);
     }
 
     public class UserRepository : IUserRepository
     {
-        // TODO: 改为从配置文件读取
-        private const int MobileValidationCodeLength = 6;
-        private const int MobileValidationCodeRequestRateInterval = 1;
-        public const int MobileValidationCodeExpirationInterval = 30;
-        private const int MobileValidationCodeMaxVerifyTimes = 3;
-
         private readonly Expression<Func<User, XM.UserInfo>> _selector;
 
         private readonly TubumuContext _tubumuContext;
@@ -91,8 +71,10 @@ namespace Tubumu.Modules.Admin.Repositories
                 MobileIsValid = u.MobileIsValid,
                 Password = u.Password,
                 Token = u.Token,
-                WeiXinOpenId = u.WeiXinOpenId,
-                WeiXinAppOpenId = u.WeiXinAppOpenId,
+                WeixinMobileOpenId = u.WeixinMobileOpenId,
+                WeixinAppOpenId = u.WeixinAppOpenId,
+                WeixinWebOpenId = u.WeixinWebOpenId,
+                WeixinUnionId = u.WeixinUnionId,
                 CreationDate = u.CreationDate,
                 Description = u.Description,
                 Status = u.Status,
@@ -225,177 +207,31 @@ namespace Tubumu.Modules.Admin.Repositories
 
             return user;
         }
-        public async Task<XM.UserInfo> GetItemByMobileAsync(string mobile, XM.UserStatus? status = null)
+        public async Task<XM.UserInfo> GetItemByEmailAsync(string email, bool emailIsValid = true, XM.UserStatus? status = null)
         {
             XM.UserInfo user;
             if (status.HasValue)
             {
-                user = await _tubumuContext.User.AsNoTracking().Select(_selector).FirstOrDefaultAsync(m => (m.MobileIsValid && m.Mobile == mobile) && m.Status == status.Value);
+                user = await _tubumuContext.User.AsNoTracking().Select(_selector).FirstOrDefaultAsync(m => (m.EmailIsValid == emailIsValid && m.Email == email) && m.Status == status.Value);
             }
             else
             {
-                user = await _tubumuContext.User.AsNoTracking().Select(_selector).FirstOrDefaultAsync(m => (m.MobileIsValid && m.Mobile == mobile));
+                user = await _tubumuContext.User.AsNoTracking().Select(_selector).FirstOrDefaultAsync(m => (m.EmailIsValid == emailIsValid && m.Email == email));
             }
-
             return user;
         }
-        public async Task<XM.UserInfo> GetItemByEmailAsync(string email, XM.UserStatus? status = null)
+        public async Task<XM.UserInfo> GetItemByMobileAsync(string mobile, bool mobileIsValid = true, XM.UserStatus? status = null)
         {
             XM.UserInfo user;
             if (status.HasValue)
             {
-                user = await _tubumuContext.User.AsNoTracking().Select(_selector).FirstOrDefaultAsync(m => (m.EmailIsValid && m.Email == email) && m.Status == status.Value);
+                user = await _tubumuContext.User.AsNoTracking().Select(_selector).FirstOrDefaultAsync(m => (m.EmailIsValid == mobileIsValid && m.Mobile == mobile) && m.Status == status.Value);
             }
             else
             {
-                user = await _tubumuContext.User.AsNoTracking().Select(_selector).FirstOrDefaultAsync(m => (m.EmailIsValid && m.Email == email));
+                user = await _tubumuContext.User.AsNoTracking().Select(_selector).FirstOrDefaultAsync(m => (m.EmailIsValid == mobileIsValid && m.Mobile == mobile));
             }
             return user;
-        }
-        public async Task<XM.UserInfo> GetItemByWeiXinOpenIdAsync(string wxOpenId)
-        {
-            if (wxOpenId.IsNullOrWhiteSpace()) return null;
-            XM.UserInfo user = await _tubumuContext.User.AsNoTracking().Where(m => m.WeiXinOpenId == wxOpenId).Select(_selector).FirstOrDefaultAsync();
-            return user;
-        }
-        public async Task<XM.UserInfo> GetItemByWeiXinAppOpenIdAsync(string wxaOpenId)
-        {
-            if (wxaOpenId.IsNullOrWhiteSpace()) return null;
-            XM.UserInfo user = await _tubumuContext.User.AsNoTracking().Where(m => m.WeiXinAppOpenId == wxaOpenId).Select(_selector).FirstOrDefaultAsync();
-            return user;
-        }
-        public async Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinOpenIdAsync(Guid groupId, string wxOpenId, string mobile = null, string displayName = null)
-        {
-            if (wxOpenId.IsNullOrWhiteSpace()) return null;
-            var user = await GetItemByWeiXinAppOpenIdAsync(wxOpenId);
-            if (user == null)
-            {
-                var newUser = new User
-                {
-                    Status = XM.UserStatus.Normal,
-                    CreationDate = DateTime.Now,
-                    WeiXinOpenId = wxOpenId,
-                    Mobile = mobile,
-                    DisplayName = displayName,
-                    GroupId = groupId, // new Guid("11111111-1111-1111-1111-111111111111") 等待分配组
-                    Username = "g" + Guid.NewGuid().ToString("N").Substring(19),
-                    Password = wxOpenId,
-                };
-
-                _tubumuContext.User.Add(newUser);
-                await _tubumuContext.SaveChangesAsync();
-            }
-            else
-            {
-                if (!displayName.IsNullOrWhiteSpace() || !mobile.IsNullOrWhiteSpace())
-                {
-                    var item = await _tubumuContext.User.Where(m => m.WeiXinOpenId == wxOpenId).FirstOrDefaultAsync();
-                    if (item != null)
-                    {
-                        if (!displayName.IsNullOrWhiteSpace())
-                        {
-                            item.DisplayName = displayName;
-                        }
-                        if (!mobile.IsNullOrWhiteSpace())
-                        {
-                            item.Mobile = mobile;
-                        }
-                        await _tubumuContext.SaveChangesAsync();
-                    }
-                }
-            }
-
-            return await GetItemByWeiXinOpenIdAsync(wxOpenId);
-        }
-        public async Task<XM.UserInfo> GetOrGenerateNormalItemByWeiXinAppOpenIdAsync(Guid groupId, string wxaOpenId, string mobile = null, string displayName = null)
-        {
-            if (wxaOpenId.IsNullOrWhiteSpace()) return null;
-            var user = await GetItemByWeiXinAppOpenIdAsync(wxaOpenId);
-            if (user == null)
-            {
-                var newUser = new User
-                {
-                    Status = XM.UserStatus.Normal,
-                    CreationDate = DateTime.Now,
-                    WeiXinAppOpenId = wxaOpenId,
-                    Mobile = mobile,
-                    DisplayName = displayName,
-                    GroupId = groupId, // new Guid("11111111-1111-1111-1111-111111111111") 等待分配组
-                    Username = "g" + Guid.NewGuid().ToString("N").Substring(19),
-                    Password = wxaOpenId,
-                };
-
-                _tubumuContext.User.Add(newUser);
-                await _tubumuContext.SaveChangesAsync();
-            }
-            else
-            {
-                if (!displayName.IsNullOrWhiteSpace() || !mobile.IsNullOrWhiteSpace())
-                {
-                    var item = await _tubumuContext.User.Where(m => m.WeiXinAppOpenId == wxaOpenId).FirstOrDefaultAsync();
-                    if (item != null)
-                    {
-                        if (!displayName.IsNullOrWhiteSpace())
-                        {
-                            item.DisplayName = displayName;
-                        }
-                        if (!mobile.IsNullOrWhiteSpace())
-                        {
-                            item.Mobile = mobile;
-                        }
-                        await _tubumuContext.SaveChangesAsync();
-                    }
-                }
-            }
-
-            return await GetItemByWeiXinAppOpenIdAsync(wxaOpenId);
-        }
-        public async Task<XM.UserInfo> GenerateItemAsync(Guid groupId, XM.UserStatus status, string mobile, string password, ModelStateDictionary modelState)
-        {
-            if(await _tubumuContext.User.AnyAsync(m => m.Mobile == mobile))
-            {
-                modelState.AddModelError(nameof(mobile), $"手机号 {mobile} 已被注册。");
-                return null;
-            }
-
-            var newUser = new User
-            {
-                Status = status,
-                CreationDate = DateTime.Now,
-                Mobile = mobile,
-                MobileIsValid = true,
-                GroupId = groupId,
-                Username = "g" + Guid.NewGuid().ToString("N").Substring(19),
-                Password = password,
-            };
-
-            _tubumuContext.User.Add(newUser);
-            await _tubumuContext.SaveChangesAsync();
-            return await GetItemByUserIdAsync(newUser.UserId);
-        }
-        public async Task<int> ResetPasswordAsync(string mobile, string password, ModelStateDictionary modelState)
-        {
-            if(!await _tubumuContext.User.AnyAsync(m => m.Mobile == mobile))
-            {
-                modelState.AddModelError(nameof(mobile), $"手机号 {mobile} 尚未注册。");
-                return 0;
-            }
-
-            var user = await _tubumuContext.User.Where(m=>m.Mobile == mobile).FirstOrDefaultAsync();
-            if(user == null)
-            {
-                modelState.AddModelError(nameof(mobile), $"手机号 {mobile} 尚未注册。");
-                return 0;
-            }
-            if(user.Status != XM.UserStatus.Normal)
-            {
-                modelState.AddModelError(nameof(mobile), $"手机号 {mobile} 的用户状态不允许重置密码。");
-                return 0;
-            }
-
-            user.Password = password;
-            await _tubumuContext.SaveChangesAsync();
-            return user.UserId;
         }
         public async Task<string> GetHeadUrlAsync(int userId)
         {
@@ -421,21 +257,10 @@ namespace Tubumu.Modules.Admin.Repositories
         {
             return await _tubumuContext.User.AnyAsync(m => m.Username == username);
         }
-        public async Task<bool> IsExistsMobileAsync(string mobile)
-        {
-            if (mobile.IsNullOrWhiteSpace()) return false;
-            return await _tubumuContext.User.AnyAsync(m => m.Mobile == mobile);
-        }
         public async Task<bool> IsExistsEmailAsync(string email)
         {
             if (email.IsNullOrWhiteSpace()) return false;
             return await _tubumuContext.User.AnyAsync(m => m.Email == email);
-        }
-        public async Task<bool> IsExistsMobilesAsync(IEnumerable<string> mobiles)
-        {
-            var enumerable = mobiles as string[] ?? mobiles.ToArray();
-            if (enumerable.Length == 0) return false;
-            return await _tubumuContext.User.Where(m => mobiles.Contains(m.Mobile)).AnyAsync();
         }
         public async Task<bool> IsExistsAsync(int userId, XM.UserStatus? status = null)
         {
@@ -451,11 +276,6 @@ namespace Tubumu.Modules.Admin.Repositories
         public async Task<bool> VerifyExistsUsernameAsync(int userId, string username)
         {
             return await _tubumuContext.User.AnyAsync(m => m.UserId != userId && m.Username == username);
-        }
-        public async Task<bool> VerifyExistsMobileAsync(int userId, string mobile)
-        {
-            if (mobile.IsNullOrWhiteSpace()) return false;
-            return await _tubumuContext.User.AnyAsync(m => m.UserId != userId && m.Mobile == mobile);
         }
         public async Task<bool> VerifyExistsEmailAsync(int userId, string email)
         {
@@ -839,30 +659,6 @@ namespace Tubumu.Modules.Admin.Repositories
 
             return true;
         }
-        public async Task<bool> ChangeMobileAsync(int userId, string newMobile, ModelStateDictionary modelState)
-        {
-            var user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
-            if (user == null)
-            {
-                modelState.AddModelError("UserId", "当前用户不存在");
-                return false;
-            }
-            if (!user.Mobile.IsNullOrWhiteSpace() &&
-                user.Mobile.Equals(newMobile, StringComparison.InvariantCultureIgnoreCase))
-            {
-                modelState.AddModelError("UserId", "目标手机号和当前手机号相同");
-                return false;
-            }
-            if (_tubumuContext.User.Any(m => m.UserId != userId && m.Mobile == newMobile))
-            {
-                modelState.AddModelError("UserId", "手机号[{0}]已经被使用".FormatWith(newMobile));
-                return false;
-            }
-            user.Mobile = newMobile;
-            await _tubumuContext.SaveChangesAsync();
-
-            return true;
-        }
         public async Task<bool> ChangeDisplayNameAsync(int userId, string newDisplayName)
         {
             var user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
@@ -1009,94 +805,6 @@ namespace Tubumu.Modules.Admin.Repositories
             var item = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
             if (item == null) return false;
             item.Token = token;
-            await _tubumuContext.SaveChangesAsync();
-            return true;
-        }
-        public async Task<bool> UpdateWeiXinOpenIdAsync(int userId, String wxOpenId, ModelStateDictionary modelState)
-        {
-            if (wxOpenId.IsNullOrWhiteSpace())
-            {
-                modelState.AddModelError("WXOpenId", "未知微信");
-                return false;
-            }
-            // 微信已经被使用
-            var user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.WeiXinOpenId == wxOpenId);
-            if (user != null)
-            {
-                if (user.UserId != userId)
-                {
-                    // 微信已经绑定本人
-                    return true;
-                }
-                else
-                {
-                    // 微信已经被他人绑定
-                    modelState.AddModelError("WXOpenId", "微信已经绑定了其他用户");
-                    return false;
-                }
-            }
-
-            // 本人已经绑定
-            user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
-            if (user == null)
-            {
-                modelState.AddModelError("UserId", "用户不存在");
-                return false;
-            }
-            user.WeiXinOpenId = wxOpenId;
-            await _tubumuContext.SaveChangesAsync();
-            return true;
-        }
-        public async Task<bool> CleanWeiXinOpenIdAsync(int userId)
-        {
-            var item = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
-            if (item == null) return false;
-            // 不判断本人是否已经绑定
-            item.WeiXinOpenId = null;
-            await _tubumuContext.SaveChangesAsync();
-            return true;
-        }
-        public async Task<bool> UpdateWeiXinAppOpenIdAsync(int userId, String wxaOpenId, ModelStateDictionary modelState)
-        {
-            if (wxaOpenId.IsNullOrWhiteSpace())
-            {
-                modelState.AddModelError("WXOpenId", "未知微信");
-                return false;
-            }
-            // 微信已经被使用
-            var user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.WeiXinAppOpenId == wxaOpenId);
-            if (user != null)
-            {
-                if (user.UserId == userId)
-                {
-                    // 微信已经绑定本人
-                    return true;
-                }
-                else
-                {
-                    // 微信已经被他人绑定
-                    modelState.AddModelError("WXOpenId", "微信已经绑定了其他用户");
-                    return false;
-                }
-            }
-
-            // 本人已经绑定
-            user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
-            if (user == null)
-            {
-                modelState.AddModelError("UserId", "用户不存在");
-                return false;
-            }
-            user.WeiXinAppOpenId = wxaOpenId;
-            await _tubumuContext.SaveChangesAsync();
-            return true;
-        }
-        public async Task<bool> CleanWeiXinAppOpenIdAsync(int userId)
-        {
-            var item = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
-            if (item == null) return false;
-            // 不判断本人是否已经绑定
-            item.WeiXinAppOpenId = null;
             await _tubumuContext.SaveChangesAsync();
             return true;
         }

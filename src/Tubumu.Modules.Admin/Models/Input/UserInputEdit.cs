@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Tubumu.Modules.Framework.ModelValidation.Attributes;
 
-namespace Tubumu.Modules.Admin.Models.InputModels
+namespace Tubumu.Modules.Admin.Models.Input
 {
     /// <summary>
     /// 编辑用户密码要么都为空，要么必须输入合法的密码

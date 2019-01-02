@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Tubumu.Modules.Framework.ModelValidation.Attributes;
 
-namespace Tubumu.Modules.Admin.Models.InputModels
+namespace Tubumu.Modules.Admin.Models.Input
 {
     public class RoleIdInput
     {

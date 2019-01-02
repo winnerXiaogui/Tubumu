@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Caching.Distributed;
 using Tubumu.Modules.Admin.Models;
-using Tubumu.Modules.Admin.Models.InputModels;
+using Tubumu.Modules.Admin.Models.Input;
 using Tubumu.Modules.Admin.Repositories;
 using Tubumu.Modules.Framework.Extensions;
 using Tubumu.Modules.Framework.Extensions.Object;

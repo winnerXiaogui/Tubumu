@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Tubumu.Modules.Admin.Models;
-using Tubumu.Modules.Admin.Models.InputModels;
+using Tubumu.Modules.Admin.Models.Input;
 using Tubumu.Modules.Admin.Services;
 using Tubumu.Modules.Framework.Authorization;
 using Tubumu.Modules.Framework.Models;

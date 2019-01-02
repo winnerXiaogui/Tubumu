@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Tubumu.Modules.Admin.Models.InputModels;
+using Tubumu.Modules.Admin.Models.Input;
 
 namespace Tubumu.Modules.Admin.Services
 {

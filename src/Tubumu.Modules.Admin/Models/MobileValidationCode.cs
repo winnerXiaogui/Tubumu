@@ -9,6 +9,7 @@ namespace Tubumu.Modules.Admin.Models
         ResetPassword,
         ChangeMobile,
         Login,
+        Bind
     }
 
     public class MobileValidationCode

@@ -50,7 +50,7 @@ namespace Tubumu.Modules.Framework
             services.AddDistributedRedisCache(options =>
             {
                 options.Configuration = "localhost";
-                options.InstanceName = _environment.ApplicationName;
+                options.InstanceName = _environment.ApplicationName + ":";
             });
 
             // Cors

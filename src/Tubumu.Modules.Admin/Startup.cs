@@ -47,20 +47,24 @@ namespace Tubumu.Modules.Admin
         
             // Repositories
             services.AddScoped<IBulletinRepository, BulletinRepository>();
-            services.AddScoped<IGroupRepository, GroupRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IPermissionRepository, PermissionRepository>();
             services.AddScoped<IRoleRepository, RoleRepository>();
+            services.AddScoped<IGroupRepository, GroupRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IMobileUserRepository, MobileUserRepository>();
+            services.AddScoped<IWeixinUserRepository, WeixinUserRepository>();
             
             // Services
             services.AddSingleton<ISmsSender, SubMailSmsSender>();
-            services.AddScoped<IBulletinService, BulletinService>();
-            services.AddScoped<IGroupService, GroupService>();
             services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<IBulletinService, BulletinService>();
             services.AddScoped<IPermissionService, PermissionService>();
             services.AddScoped<IRoleService, RoleService>();
+            services.AddScoped<IGroupService, GroupService>();
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IMobileUserService, MobileUserService>();
+            services.AddScoped<IWeixinUserService, WeixinUserService>();
             services.AddScoped<IAdminUserService, AdminUserService>();
 
             // Frontend
@@ -74,6 +78,11 @@ namespace Tubumu.Modules.Admin
 
             // 手机验证码设置
             services.Configure<MobileValidationCodeSettings>(_configuration.GetSection("MobileValidationCodeSettings"));
+
+            // 微信设置
+            services.Configure<WeixinAppSettings>(_configuration.GetSection("WeixinSettings:App"));
+            services.Configure<WeixinMobileSettings>(_configuration.GetSection("WeixinSettings:Mobile"));
+            services.Configure<WeixinWebSettings>(_configuration.GetSection("WeixinSettings:Web"));
         }
 
         public override void Configure(IApplicationBuilder app, IRouteBuilder routes, IServiceProvider serviceProvider)
