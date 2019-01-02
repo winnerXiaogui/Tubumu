@@ -18,6 +18,7 @@ using Tubumu.Modules.Framework.Extensions;
 using Tubumu.Modules.Framework.Authorization;
 using Tubumu.Modules.Framework.Models;
 using Tubumu.Modules.Framework.Swagger;
+using Senparc.Weixin.Open;
 
 namespace Tubumu.Modules.Admin.Controllers
 {
@@ -57,7 +58,7 @@ namespace Tubumu.Modules.Admin.Controllers
             else
             {
                 returnResult.Code = 200;
-                returnResult.Message = "获取手机成功";
+                returnResult.Message = "获取手机验证码成功";
             };
             return returnResult;
         }
@@ -70,7 +71,7 @@ namespace Tubumu.Modules.Admin.Controllers
             var verifyMobileValidationCodeInput = new VerifyMobileValidationCodeInput
             {
                 Mobile = input.Mobile,
-                TypeId = 1, // 注册
+                Type = MobileValidationCodeType.Register, // 注册
                 ValidationCode = input.ValidationCode,
             };
             if(!await _userService.VerifyMobileValidationCodeAsync(verifyMobileValidationCodeInput, ModelState))
@@ -79,7 +80,7 @@ namespace Tubumu.Modules.Admin.Controllers
                 returnResult.Message = ModelState.FirstErrorMessage();
                 return returnResult;
             }
-            await _userService.FinishVerifyMobileValidationCodeAsync(verifyMobileValidationCodeInput.Mobile, verifyMobileValidationCodeInput.TypeId, ModelState);
+            await _userService.FinishVerifyMobileValidationCodeAsync(verifyMobileValidationCodeInput.Mobile, verifyMobileValidationCodeInput.Type, ModelState);
             var userInfo = await _userService.GenerateItemAsync(_authenticationSettings.RegisterDefaultGroupId, _authenticationSettings.RegisterDefaultStatus, input, ModelState);
             if(userInfo == null)
             {
@@ -98,7 +99,7 @@ namespace Tubumu.Modules.Admin.Controllers
             var jwt = GetJwt(userInfo);
             returnResult.Token = jwt;
             returnResult.Code = 200;
-            returnResult.Message = "登录成功";
+            returnResult.Message = "注册成功";
             return returnResult;
         }
 
@@ -154,7 +155,7 @@ namespace Tubumu.Modules.Admin.Controllers
             var verifyMobileValidationCodeInput = new VerifyMobileValidationCodeInput
             {
                 Mobile = input.Mobile,
-                TypeId = 2, // 重置密码
+                Type = MobileValidationCodeType.ResetPassword, // 重置密码
                 ValidationCode = input.ValidationCode,
             };
             if(!await _userService.VerifyMobileValidationCodeAsync(verifyMobileValidationCodeInput, ModelState))
@@ -163,7 +164,7 @@ namespace Tubumu.Modules.Admin.Controllers
                 returnResult.Message = ModelState.FirstErrorMessage();
                 return returnResult;
             }
-            await _userService.FinishVerifyMobileValidationCodeAsync(verifyMobileValidationCodeInput.Mobile, verifyMobileValidationCodeInput.TypeId, ModelState);
+            await _userService.FinishVerifyMobileValidationCodeAsync(verifyMobileValidationCodeInput.Mobile, verifyMobileValidationCodeInput.Type, ModelState);
             if(!await _userService.ResetPasswordAsync(input, ModelState))
             {
                 returnResult.Code = 400;
@@ -173,6 +174,16 @@ namespace Tubumu.Modules.Admin.Controllers
 
             returnResult.Code = 200;
             returnResult.Message = "重置密码成功";
+            return returnResult;
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<ApiResult> WeixinLogin(MobileResetPassswordInput input)
+        {
+            var returnResult = new ApiResult();
+            returnResult.Code = 200;
+            returnResult.Message = "登录成功";
             return returnResult;
         }
 

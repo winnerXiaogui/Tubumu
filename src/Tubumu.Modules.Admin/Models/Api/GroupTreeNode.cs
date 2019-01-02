@@ -21,14 +21,14 @@ namespace Tubumu.Modules.Admin.Models.Api
         [JsonProperty(PropertyName = "name")]
         public string Name { get; set; }
 
-        [JsonProperty(PropertyName = "children", NullValueHandling = NullValueHandling.Ignore)]
-        public List<GroupTreeNode> Children { get; set; }
-
         [JsonProperty(PropertyName = "level")]
         public int Level { get; set; }
 
         [JsonProperty(PropertyName = "displayOrder")]
         public int DisplayOrder { get; set; }
+
+        [JsonProperty(PropertyName = "children", NullValueHandling = NullValueHandling.Ignore)]
+        public List<GroupTreeNode> Children { get; set; }
 
         [JsonProperty(PropertyName = "isContainsUser")]
         public bool IsContainsUser { get; set; }

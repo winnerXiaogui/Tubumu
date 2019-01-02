@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Tubumu.Modules.Admin.Models;
+using XM = Tubumu.Modules.Admin.Models;
 
 namespace Tubumu.Modules.Admin.Entities
 {
@@ -28,7 +28,7 @@ namespace Tubumu.Modules.Admin.Entities
         public string Mobile { get; set; }
         public bool MobileIsValid { get; set; }
         public string Password { get; set; }
-        public UserStatus Status { get; set; }
+        public XM.UserStatus Status { get; set; }
         public DateTime CreationDate { get; set; }
         public string HeadUrl { get; set; }
         public string LogoUrl { get; set; }

@@ -71,6 +71,9 @@ namespace Tubumu.Modules.Admin
 
             // 认证设置
             services.Configure<AuthenticationSettings>(_configuration.GetSection("AuthenticationSettings"));
+
+            // 手机验证码设置
+            services.Configure<MobileValidationCodeSettings>(_configuration.GetSection("MobileValidationCodeSettings"));
         }
 
         public override void Configure(IApplicationBuilder app, IRouteBuilder routes, IServiceProvider serviceProvider)

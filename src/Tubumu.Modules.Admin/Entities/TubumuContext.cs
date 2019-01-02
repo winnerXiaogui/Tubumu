@@ -21,10 +21,10 @@ namespace Tubumu.Modules.Admin.Entities
         public virtual DbSet<GroupPermission> GroupPermission { get; set; }
         public virtual DbSet<GroupRole> GroupRole { get; set; }
         public virtual DbSet<Log> Log { get; set; }
-        public virtual DbSet<MobileValidationCode> MobileValidationCode { get; set; }
         public virtual DbSet<Notification> Notification { get; set; }
         public virtual DbSet<NotificationUser> NotificationUser { get; set; }
         public virtual DbSet<Permission> Permission { get; set; }
+        public virtual DbSet<Region> Region { get; set; }
         public virtual DbSet<Role> Role { get; set; }
         public virtual DbSet<RolePermission> RolePermission { get; set; }
         public virtual DbSet<User> User { get; set; }
@@ -36,8 +36,8 @@ namespace Tubumu.Modules.Admin.Entities
         {
             if (!optionsBuilder.IsConfigured)
             {
-                //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
-                //optionsBuilder.UseSqlServer("Data Source=.;Initial Catalog=Tubumu;User Id=sa;Password=123456;");
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
+                optionsBuilder.UseSqlServer("Data Source=.;Initial Catalog=Tubumu;User Id=sa;Password=123456;");
             }
         }
 
@@ -97,8 +97,7 @@ namespace Tubumu.Modules.Admin.Entities
 
             modelBuilder.Entity<GroupRole>(entity =>
             {
-                entity.HasKey(e => new { e.GroupId, e.RoleId })
-                    .HasName("PK_GroupRole");
+                entity.HasKey(e => new { e.GroupId, e.RoleId });
 
                 entity.HasOne(d => d.Group)
                     .WithMany(p => p.GroupRole)
@@ -116,20 +115,6 @@ namespace Tubumu.Modules.Admin.Entities
                 entity.Property(e => e.Description).HasMaxLength(1000);
 
                 entity.Property(e => e.Ip)
-                    .IsRequired()
-                    .HasMaxLength(20);
-            });
-
-            modelBuilder.Entity<MobileValidationCode>(entity =>
-            {
-                entity.HasKey(e => e.Mobile)
-                    .HasName("PK_ValidationCode");
-
-                entity.Property(e => e.Mobile)
-                    .HasMaxLength(20)
-                    .ValueGeneratedNever();
-
-                entity.Property(e => e.ValidationCode)
                     .IsRequired()
                     .HasMaxLength(20);
             });
@@ -188,6 +173,46 @@ namespace Tubumu.Modules.Admin.Entities
                     .HasMaxLength(50);
             });
 
+            modelBuilder.Entity<Region>(entity =>
+            {
+                entity.Property(e => e.RegionId).ValueGeneratedNever();
+
+                entity.Property(e => e.Extra)
+                    .HasMaxLength(60)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.Initial)
+                    .HasMaxLength(3)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.Initials)
+                    .HasMaxLength(30)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.Name).HasMaxLength(100);
+
+                entity.Property(e => e.Pinyin)
+                    .HasMaxLength(500)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.RegionCode)
+                    .HasMaxLength(6)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.Suffix)
+                    .HasMaxLength(15)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.ZipCode)
+                    .HasMaxLength(6)
+                    .IsUnicode(false);
+
+                entity.HasOne(d => d.Parent)
+                    .WithMany(p => p.InverseParent)
+                    .HasForeignKey(d => d.ParentId)
+                    .HasConstraintName("FK_Region_Region");
+            });
+
             modelBuilder.Entity<Role>(entity =>
             {
                 entity.Property(e => e.RoleId).ValueGeneratedNever();
@@ -199,8 +224,7 @@ namespace Tubumu.Modules.Admin.Entities
 
             modelBuilder.Entity<RolePermission>(entity =>
             {
-                entity.HasKey(e => new { e.RoleId, e.PermissionId })
-                    .HasName("PK_RolePermission");
+                entity.HasKey(e => new { e.RoleId, e.PermissionId });
 
                 entity.HasOne(d => d.Permission)
                     .WithMany(p => p.RolePermission)
@@ -282,8 +306,7 @@ namespace Tubumu.Modules.Admin.Entities
 
             modelBuilder.Entity<UserPermission>(entity =>
             {
-                entity.HasKey(e => new { e.UserId, e.PermissionId })
-                    .HasName("PK_UserPermission");
+                entity.HasKey(e => new { e.UserId, e.PermissionId });
 
                 entity.HasOne(d => d.Permission)
                     .WithMany(p => p.UserPermission)
@@ -299,8 +322,7 @@ namespace Tubumu.Modules.Admin.Entities
 
             modelBuilder.Entity<UserRole>(entity =>
             {
-                entity.HasKey(e => new { e.UserId, e.RoleId })
-                    .HasName("PK_UserRole");
+                entity.HasKey(e => new { e.UserId, e.RoleId });
 
                 entity.HasOne(d => d.Role)
                     .WithMany(p => p.UserRole)

@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Options;
 using Tubumu.Modules.Admin.Models;
 using Tubumu.Modules.Admin.Models.InputModels;
 using Tubumu.Modules.Admin.Repositories;
+using Tubumu.Modules.Admin.Settings;
 using Tubumu.Modules.Framework.Extensions;
 using Tubumu.Modules.Framework.Models;
 using Tubumu.Modules.Framework.Services;
@@ -61,20 +64,23 @@ namespace Tubumu.Modules.Admin.Services
         Task<bool> SignOutAsync(int userId);
         Task<bool> GetMobileValidationCodeAsync(GetMobileValidationCodeInput getMobileValidationCodeInput, ModelStateDictionary modelState);
         Task<bool> VerifyMobileValidationCodeAsync(VerifyMobileValidationCodeInput verifyMobileValidationCodeInput, ModelStateDictionary modelState, string defaultCode = null);
-        Task<bool> FinishVerifyMobileValidationCodeAsync(string mobile, int typeId, ModelStateDictionary modelState);
+        Task<bool> FinishVerifyMobileValidationCodeAsync(string mobile, MobileValidationCodeType type, ModelStateDictionary modelState);
     }
     public class UserService : IUserService
     {
+        private readonly MobileValidationCodeSettings _mobileValidationCodeSettings;
         private readonly IDistributedCache _cache;
         private readonly IUserRepository _repository;
         private readonly IGroupService _groupService;
         private readonly ISmsSender _smsSender;
 
         private const string UserCacheKeyFormat = "User:{0}";
+        private const string MobileValidationCodeCacheKeyFormat = "MobileValidationCode:{0}";
 
-        public UserService(IDistributedCache cache, IUserRepository repository, IGroupService groupService, ISmsSender smsSender
+        public UserService(IOptions<MobileValidationCodeSettings> mobileValidationCodeSettingsOptions, IDistributedCache cache, IUserRepository repository, IGroupService groupService, ISmsSender smsSender
             )
         {
+            _mobileValidationCodeSettings = mobileValidationCodeSettingsOptions.Value;
             _cache = cache;
             _repository = repository;
             _groupService = groupService;
@@ -513,14 +519,66 @@ namespace Tubumu.Modules.Admin.Services
         }
         public async Task<bool> GetMobileValidationCodeAsync(GetMobileValidationCodeInput getMobileValidationCodeInput, ModelStateDictionary modelState)
         {
-            var code = await _repository.GetMobileValidationCodeAsync(getMobileValidationCodeInput, modelState);
-            if (!modelState.IsValid)
+            if (getMobileValidationCodeInput.Type == MobileValidationCodeType.Register)
             {
-                // 可能原因：请求过于频繁
-                return false;
+                if (await _repository.IsExistsMobileAsync(getMobileValidationCodeInput.Mobile))
+                {
+                    modelState.AddModelError("Mobile", "手机号码已经被使用");
+                    return false;
+                }
+            }
+            else if (getMobileValidationCodeInput.Type == MobileValidationCodeType.Login || getMobileValidationCodeInput.Type == MobileValidationCodeType.ChangeMobile)
+            {
+                if (!await _repository.IsExistsMobileAsync(getMobileValidationCodeInput.Mobile))
+                {
+                    modelState.AddModelError("Mobile", "手机号码尚未注册");
+                    return false;
+                }
             }
 
-            return await _smsSender.SendAsync(getMobileValidationCodeInput.Mobile, code, UserRepository.MobileValidationCodeExpirationInterval.ToString());
+            string validationCode = null;
+            var cacheKey = MobileValidationCodeCacheKeyFormat.FormatWith(getMobileValidationCodeInput.Mobile);
+            var mobileValidationCode = await _cache.GetJsonAsync<MobileValidationCode>(cacheKey);
+            var now = DateTime.Now;
+            if (mobileValidationCode != null)
+            {
+                if (now - mobileValidationCode.CreationDate < TimeSpan.FromSeconds(_mobileValidationCodeSettings.RequestInterval))
+                {
+                    modelState.AddModelError("Mobile", "请求过于频繁，请稍后再试");
+                    return false;
+                }
+
+                if (!mobileValidationCode.ValidationCode.IsNullOrWhiteSpace() &&
+                    mobileValidationCode.Type == getMobileValidationCodeInput.Type /* 验证码用途未发生更改 */ &&
+                    mobileValidationCode.ExpirationDate <= now /* 验证码没到期 */ &&
+                    mobileValidationCode.VerifyTimes < mobileValidationCode.MaxVerifyTimes /* 验证码在合理使用次数内 */)
+                {
+                    // 继续沿用之前的验证码
+                    validationCode = mobileValidationCode.ValidationCode;
+                }
+            }
+
+            if (validationCode == null)
+            {
+                validationCode = GenerateValidationCode(_mobileValidationCodeSettings.CodeLength);
+                mobileValidationCode = new MobileValidationCode
+                {
+                    Mobile = getMobileValidationCodeInput.Mobile,
+                    Type = getMobileValidationCodeInput.Type,
+                    ValidationCode = validationCode,
+                    ExpirationDate = now.AddSeconds(_mobileValidationCodeSettings.Expiration),
+                    MaxVerifyTimes = _mobileValidationCodeSettings.MaxVerifyTimes,
+                    VerifyTimes = 0,
+                    FinishVerifyDate = null,
+                    CreationDate = now,
+                };
+                await _cache.SetJsonAsync<MobileValidationCode>(cacheKey, mobileValidationCode, new DistributedCacheEntryOptions
+                {
+                    SlidingExpiration = TimeSpan.FromSeconds(_mobileValidationCodeSettings.Expiration)
+                });
+            }
+
+            return await _smsSender.SendAsync(getMobileValidationCodeInput.Mobile, validationCode, (_mobileValidationCodeSettings.Expiration / 60).ToString());
         }
         public async Task<bool> VerifyMobileValidationCodeAsync(VerifyMobileValidationCodeInput verifyMobileValidationCodeInput, ModelStateDictionary modelState, string defaultCode = null)
         {
@@ -529,11 +587,70 @@ namespace Tubumu.Modules.Admin.Services
                 return true;
             }
 
-            return await _repository.VerifyMobileValidationCodeAsync(verifyMobileValidationCodeInput, modelState);
+            var cacheKey = MobileValidationCodeCacheKeyFormat.FormatWith(verifyMobileValidationCodeInput.Mobile);
+            var mobileValidationCode = await _cache.GetJsonAsync<MobileValidationCode>(cacheKey);
+            var now = DateTime.Now;
+            if (mobileValidationCode == null)
+            {
+                modelState.AddModelError("Mobile", "尚未请求验证码");
+                return false;
+            }
+
+            mobileValidationCode.VerifyTimes++;
+            await _cache.SetJsonAsync<MobileValidationCode>(cacheKey, mobileValidationCode, new DistributedCacheEntryOptions
+            {
+                SlidingExpiration = TimeSpan.FromSeconds(_mobileValidationCodeSettings.Expiration)
+            });
+
+            if (mobileValidationCode.ValidationCode.IsNullOrWhiteSpace())
+            {
+                modelState.AddModelError("Mobile", "异常：尚未生成验证码");
+                return false;
+            }
+            if (mobileValidationCode.Type != verifyMobileValidationCodeInput.Type)
+            {
+                modelState.AddModelError("Mobile", "手机验证码类型错误，请重新请求");
+                return false;
+            }
+            if (mobileValidationCode.VerifyTimes > mobileValidationCode.MaxVerifyTimes)
+            {
+                modelState.AddModelError("Mobile", "手机验证码验证次数过多，请重新请求");
+                return false;
+            }
+            if (DateTime.Now > mobileValidationCode.ExpirationDate)
+            {
+                modelState.AddModelError("Mobile", "手机验证码已经过期，请重新请求");
+                return false;
+            }
+            if (mobileValidationCode.FinishVerifyDate != null)
+            {
+                modelState.AddModelError("Mobile", "手机验证码已经使用，请重新请求");
+                return false;
+            }
+            if (!mobileValidationCode.ValidationCode.Equals(verifyMobileValidationCodeInput.ValidationCode, StringComparison.InvariantCultureIgnoreCase))
+            {
+                modelState.AddModelError("Mobile", "手机验证码输入错误，请重新输入");
+                return false;
+            }
+
+            return true;
         }
-        public async Task<bool> FinishVerifyMobileValidationCodeAsync(string mobile, int typeId, ModelStateDictionary modelState)
+        public async Task<bool> FinishVerifyMobileValidationCodeAsync(string mobile, MobileValidationCodeType type, ModelStateDictionary modelState)
         {
-            return await _repository.FinishVerifyMobileValidationCodeAsync(mobile, typeId, modelState);
+            var cacheKey = MobileValidationCodeCacheKeyFormat.FormatWith(mobile);
+            var mobileValidationCode = await _cache.GetJsonAsync<MobileValidationCode>(cacheKey);
+            if (mobileValidationCode == null || mobileValidationCode.ValidationCode.IsNullOrWhiteSpace())
+            {
+                modelState.AddModelError("Mobile", "尚未请求验证码");
+                return false;
+            }
+
+            mobileValidationCode.FinishVerifyDate = DateTime.Now;
+            await _cache.SetJsonAsync<MobileValidationCode>(cacheKey, mobileValidationCode, new DistributedCacheEntryOptions
+            {
+                SlidingExpiration = TimeSpan.FromSeconds(_mobileValidationCodeSettings.Expiration)
+            });
+            return true;
         }
 
         #endregion
@@ -557,6 +674,45 @@ namespace Tubumu.Modules.Admin.Services
                 tmpstr += pwdChars[iRandNum];
             }
             return tmpstr;
+        }
+
+        private string GenerateValidationCode(int codeLength)
+        {
+            int[] randMembers = new int[codeLength];
+            int[] validateNums = new int[codeLength];
+            string validateNumberStr = String.Empty;
+            //生成起始序列值
+            int seekSeek = unchecked((int)DateTime.Now.Ticks);
+            Random seekRand = new Random(seekSeek);
+            int beginSeek = (int)seekRand.Next(0, Int32.MaxValue - codeLength * 10000);
+            int[] seeks = new int[codeLength];
+            for (int i = 0; i < codeLength; i++)
+            {
+                beginSeek += 10000;
+                seeks[i] = beginSeek;
+            }
+            //生成随机数字
+            for (int i = 0; i < codeLength; i++)
+            {
+                var rand = new Random(seeks[i]);
+                int pownum = 1 * (int)Math.Pow(10, codeLength);
+                randMembers[i] = rand.Next(pownum, Int32.MaxValue);
+            }
+            //抽取随机数字
+            for (int i = 0; i < codeLength; i++)
+            {
+                string numStr = randMembers[i].ToString(CultureInfo.InvariantCulture);
+                int numLength = numStr.Length;
+                Random rand = new Random();
+                int numPosition = rand.Next(0, numLength - 1);
+                validateNums[i] = Int32.Parse(numStr.Substring(numPosition, 1));
+            }
+            //生成验证码
+            for (int i = 0; i < codeLength; i++)
+            {
+                validateNumberStr += validateNums[i].ToString();
+            }
+            return validateNumberStr;
         }
 
         private async Task GengerateGroupIdsAsync(UserSearchCriteria criteria)
