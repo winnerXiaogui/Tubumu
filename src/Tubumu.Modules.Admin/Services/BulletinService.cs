@@ -41,7 +41,7 @@ namespace Tubumu.Modules.Admin.Services
             return result;
         }
 
-        public async Task<Bulletin> GetItemInCacheInternalAsync()
+        private async Task<Bulletin> GetItemInCacheInternalAsync()
         {
             var bulletin = await _cache.GetJsonAsync<Bulletin>(CacheKey);
             if (bulletin == null)

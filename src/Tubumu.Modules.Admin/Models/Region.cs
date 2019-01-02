@@ -17,7 +17,11 @@ namespace Tubumu.Modules.Admin.Models
         public string ZipCode { get; set; }
         public string RegionCode { get; set; }
         public int DisplayOrder { get; set; }
+    }
 
+    public class RegionInfo : RegionInfoBase
+    {
         public virtual IEnumerable<RegionInfoBase> Children { get; set; }
     }
+
 }

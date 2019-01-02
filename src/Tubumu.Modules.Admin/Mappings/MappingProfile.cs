@@ -14,6 +14,8 @@ namespace Tubumu.Modules.Admin.Mappings
 
             CreateMap<Permission, XM.Permission>();
             CreateMap<XM.Permission, Permission>();
+
+            CreateMap<Region, XM.RegionInfoBase>();
         }
     }
 }

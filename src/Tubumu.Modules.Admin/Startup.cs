@@ -46,6 +46,7 @@ namespace Tubumu.Modules.Admin
                 }));
         
             // Repositories
+            services.AddScoped<IRegionRepository, RegionRepository>();
             services.AddScoped<IBulletinRepository, BulletinRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IPermissionRepository, PermissionRepository>();
@@ -57,6 +58,7 @@ namespace Tubumu.Modules.Admin
             
             // Services
             services.AddSingleton<ISmsSender, SubMailSmsSender>();
+            services.AddScoped<IRegionService, RegionService>();
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<IBulletinService, BulletinService>();
             services.AddScoped<IPermissionService, PermissionService>();
