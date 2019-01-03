@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
-using Tubumu.Modules.Framework.ActionResults;
+using Tubumu.Modules.Framework.Json;
 using Tubumu.Modules.Framework.Models;
 using Tubumu.Modules.Framework.ModelValidation.Attributes;
 
@@ -16,7 +16,7 @@ namespace Tubumu.Modules.Admin.Models
         public UserInfoWarpper FromUser { get; set; }
 
         [JsonProperty(PropertyName = "toUser")]
-        [JsonConverter(typeof(DependencyJsonConverter<int>), "UserId", 0)]
+        [JsonConverter(typeof(NullValueJsonConverter<int>), "UserId", 0)]
         public UserInfoWarpper ToUser { get; set; }
 
         [JsonProperty(PropertyName = "creationDate")]

@@ -2,13 +2,18 @@
 using Newtonsoft.Json;
 using Tubumu.Modules.Framework.Infrastructure.FastReflectionLib;
 
-namespace Tubumu.Modules.Framework.ActionResults
+namespace Tubumu.Modules.Framework.Json
 {
-    public class DependencyJsonConverter<T> : JsonConverter where T: IEquatable<T>
+    /// <summary>
+    /// Null 值序列化和反序列化
+    /// 当对象的名为 propertyName 的属性的值与 equalValue 相等时，序列化为 null
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class NullValueJsonConverter<T> : JsonConverter where T: IEquatable<T>
     {
         private readonly string _propertyName;
         private readonly T _equalValue;
-        public DependencyJsonConverter(string propertyName, T equalValue)
+        public NullValueJsonConverter(string propertyName, T equalValue)
         {
             _propertyName = propertyName;
             _equalValue = equalValue;
