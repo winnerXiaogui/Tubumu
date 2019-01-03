@@ -5,7 +5,7 @@ using Tubumu.Modules.Admin.Models;
 
 namespace Tubumu.Modules.Admin.Settings
 {
-    public class WeixinMobileSettings
+    public class WeixinMobileEndSettings
     {
         public string AppId { get; set; }
 

@@ -83,7 +83,7 @@ namespace Tubumu.Modules.Admin
 
             // 微信设置
             services.Configure<WeixinAppSettings>(_configuration.GetSection("WeixinSettings:App"));
-            services.Configure<WeixinMobileSettings>(_configuration.GetSection("WeixinSettings:Mobile"));
+            services.Configure<WeixinMobileEndSettings>(_configuration.GetSection("WeixinSettings:MobileEnd"));
             services.Configure<WeixinWebSettings>(_configuration.GetSection("WeixinSettings:Web"));
         }
 

@@ -115,9 +115,6 @@ namespace Tubumu.Modules.Framework.Extensions
             }
             else
             {
-                // 查询集记录数
-                // int sourceItemCount = await sourceQuery.CountAsync();
-
                 // 跳过的记录数
                 int topItemCount = topQuery.Count;
                 // 跳过的页数，比如一页显示10条，跳过4条、14条或24条，则跳过的页数为0、1或2
@@ -146,7 +143,9 @@ namespace Tubumu.Modules.Framework.Extensions
                     page.List = topItems.Concat(sourceItems).ToList();
                     if (!pagingInfo.IsExcludeMetaData)
                     {
-                        page.TotalItemCount = await sourceQuery.CountAsync() + topItemCount;
+                        // 查询集记录数
+                        int sourceItemCount = await sourceQuery.CountAsync();
+                        page.TotalItemCount = sourceItemCount + topItemCount;
                         page.TotalPageCount = (int)Math.Ceiling(page.TotalItemCount / (double)pagingInfo.PageSize);
                     }
                 }

@@ -36,8 +36,8 @@ namespace Tubumu.Modules.Framework.Extensions
                 throw new ArgumentNullException(nameof(sourceArray));
             }
 
-            if (length < 0)
-                throw new ArgumentOutOfRangeException(nameof(length), "length 不能小于零");
+            if (length <= 0)
+                throw new ArgumentOutOfRangeException(nameof(length), "length 不能小于或等于零");
             if (sourceArray.Length < length)
                 throw new ArgumentOutOfRangeException(nameof(length), "length 不能大于 sourceArray 中的元素数");
         }

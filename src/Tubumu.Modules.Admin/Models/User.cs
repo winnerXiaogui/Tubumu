@@ -70,7 +70,7 @@ namespace Tubumu.Modules.Admin.Models
         public string StatusText => Status.GetEnumDisplayName();
         public DateTime CreationDate { get; set; }
         public string HeadUrl { get; set; }
-        public string WeixinMobileOpenId { get; set; }
+        public string WeixinMobileEndOpenId { get; set; }
         public string WeixinAppOpenId { get; set; }
         public string WeixinWebOpenId { get; set; }
         public string WeixinUnionId { get; set; }

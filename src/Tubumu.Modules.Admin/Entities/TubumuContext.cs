@@ -270,7 +270,7 @@ namespace Tubumu.Modules.Admin.Entities
 
                 entity.Property(e => e.WeixinAppOpenId).HasMaxLength(50);
 
-                entity.Property(e => e.WeixinMobileOpenId).HasMaxLength(50);
+                entity.Property(e => e.WeixinMobileEndOpenId).HasMaxLength(50);
 
                 entity.Property(e => e.WeixinWebOpenId).HasMaxLength(50);
 

@@ -6,7 +6,7 @@ using Tubumu.Modules.Framework.ModelValidation.Attributes;
 
 namespace Tubumu.Modules.Admin.Models.Input
 {
-    public class WeixinMobileLoginInput
+    public class WeixinMobileEndLoginInput
     {
         /// <summary>
         /// 微信登录 Code

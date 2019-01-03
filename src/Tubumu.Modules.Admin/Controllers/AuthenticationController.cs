@@ -275,17 +275,17 @@ namespace Tubumu.Modules.Admin.Controllers
         /// <returns></returns>
         [HttpPost]
         [AllowAnonymous]
-        public async Task<ApiResult> WeixinMobileLogin(WeixinMobileLoginInput input)
+        public async Task<ApiResult> WeixinMobileEndLogin(WeixinMobileEndLoginInput input)
         {
             var returnResult = new ApiTokenResult();
-            var openId = await _weixinUserService.GetWeixinMobileOpenIdAsync(input.Code);
+            var openId = await _weixinUserService.GetWeixinMobileEndOpenIdAsync(input.Code);
             if(openId == null)
             {
                 returnResult.Code = 400;
                 returnResult.Message = "异常：获取微信 OpenId 失败";
                 return returnResult;
             }
-            var userInfo = await _weixinUserService.GetOrGenerateItemByWeixinMobileOpenIdAsync(_authenticationSettings.RegisterDefaultGroupId,
+            var userInfo = await _weixinUserService.GetOrGenerateItemByWeixinMobileEndOpenIdAsync(_authenticationSettings.RegisterDefaultGroupId,
                 _authenticationSettings.RegisterDefaultStatus,
                 openId);
             if (userInfo == null)
@@ -393,7 +393,7 @@ namespace Tubumu.Modules.Admin.Controllers
         /// <param name="input"></param>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ApiResult> BindWeixinMobile(WeixinMobileLoginInput input)
+        public async Task<ApiResult> BindWeixinMobileEnd(WeixinMobileEndLoginInput input)
         {
             var returnResult = new ApiTokenResult();
             var openId = await _weixinUserService.GetWeixinAppOpenIdAsync(input.Code);
@@ -403,7 +403,7 @@ namespace Tubumu.Modules.Admin.Controllers
                 returnResult.Message = "异常：获取微信 OpenId 失败";
                 return returnResult;
             }
-            var bindResult = await _weixinUserService.UpdateWeixinMobileOpenIdAsync(HttpContext.User.GetUserId(), openId, ModelState);
+            var bindResult = await _weixinUserService.UpdateWeixinMobileEndOpenIdAsync(HttpContext.User.GetUserId(), openId, ModelState);
             if(!bindResult)
             {
                 returnResult.Code = 400;
