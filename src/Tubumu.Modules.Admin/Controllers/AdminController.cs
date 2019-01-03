@@ -15,7 +15,6 @@ namespace Tubumu.Modules.Admin.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [IgnoreAntiforgeryToken]
-    [EnableCors("DefaultPolicy")]
     [Authorize]
     [HiddenApi]
     public partial class AdminController : ControllerBase

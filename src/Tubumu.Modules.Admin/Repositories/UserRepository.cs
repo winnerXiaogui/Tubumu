@@ -42,9 +42,6 @@ namespace Tubumu.Modules.Admin.Repositories
         Task<int> ResetPasswordByAccountAsync(string account, string password, ModelStateDictionary modelState);
         Task<bool> RemoveAsync(int userId, ModelStateDictionary modelState);
         Task<bool> ChangeStatusAsync(int userId, XM.UserStatus status);
-        Task<bool> UpdateClientAgentAsync(int userId, String clientAgent, String ip);
-        Task<bool> UpdateTokenAsync(int userId, String token);
-        Task<bool> ClearClientAgentAsync(int userId, String clientAgent);
     }
 
     public class UserRepository : IUserRepository
@@ -70,7 +67,6 @@ namespace Tubumu.Modules.Admin.Repositories
                 Mobile = u.Mobile,
                 MobileIsValid = u.MobileIsValid,
                 Password = u.Password,
-                Token = u.Token,
                 WeixinMobileOpenId = u.WeixinMobileOpenId,
                 WeixinAppOpenId = u.WeixinAppOpenId,
                 WeixinWebOpenId = u.WeixinWebOpenId,
@@ -781,38 +777,6 @@ namespace Tubumu.Modules.Admin.Repositories
             User user = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
             if (user == null) return false;
             user.Status = status;
-            await _tubumuContext.SaveChangesAsync();
-            return true;
-        }
-        public async Task<bool> UpdateClientAgentAsync(int userId, String clientAgent, String ip)
-        {
-            var item = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
-            if (item == null) return false;
-            item.ClientAgent = clientAgent;
-            var log = new Log
-            {
-                UserId = userId,
-                TypeId = 1,
-                Ip = ip,
-                CreationDate = DateTime.Now,
-            };
-            _tubumuContext.Log.Add(log);
-            await _tubumuContext.SaveChangesAsync();
-            return true;
-        }
-        public async Task<bool> UpdateTokenAsync(int userId, String token)
-        {
-            var item = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId);
-            if (item == null) return false;
-            item.Token = token;
-            await _tubumuContext.SaveChangesAsync();
-            return true;
-        }
-        public async Task<bool> ClearClientAgentAsync(int userId, String clientAgent)
-        {
-            var item = await _tubumuContext.User.FirstOrDefaultAsync(m => m.UserId == userId && m.ClientAgent == clientAgent);
-            if (item == null) return false;
-            item.ClientAgent = null;
             await _tubumuContext.SaveChangesAsync();
             return true;
         }

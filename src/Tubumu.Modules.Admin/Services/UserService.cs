@@ -49,9 +49,6 @@ namespace Tubumu.Modules.Admin.Services
         Task<bool> GetPasswordAsync(UserGetPasswordInput input, ModelStateDictionary modelState);
         Task<bool> RemoveAsync(int userId, ModelStateDictionary modelState);
         Task<bool> ChangeStatusAsync(int userId, UserStatus status);
-        Task<bool> UpdateClientAgentAsync(int userId, String clientAgent, String ip);
-        Task<bool> UpdateTokenAsync(int userId, String token);
-        Task<bool> ClearClientAgentAsync(int userId, String clientAgent, String uuid);
         Task<bool> SignInAsync(Func<Task<UserInfo>> getUser, Action<UserInfo> afterSignIn = null);
         Task<bool> SignOutAsync(int userId);
     }
@@ -339,33 +336,6 @@ namespace Tubumu.Modules.Admin.Services
         public async Task<bool> ChangeStatusAsync(int userId, UserStatus status)
         {
             var result = await _repository.ChangeStatusAsync(userId, status);
-            if (result)
-            {
-                await CleanCache(userId);
-            }
-            return result;
-        }
-        public async Task<bool> UpdateClientAgentAsync(int userId, String clientAgent, String ip)
-        {
-            var result = await _repository.UpdateClientAgentAsync(userId, clientAgent, ip);
-            if (result)
-            {
-                await CleanCache(userId);
-            }
-            return result;
-        }
-        public async Task<bool> UpdateTokenAsync(int userId, String token)
-        {
-            var result = await _repository.UpdateTokenAsync(userId, token);
-            if (result)
-            {
-                await CleanCache(userId);
-            }
-            return result;
-        }
-        public async Task<bool> ClearClientAgentAsync(int userId, String clientAgent, String uuid)
-        {
-            var result = await _repository.ClearClientAgentAsync(userId, clientAgent);
             if (result)
             {
                 await CleanCache(userId);

@@ -242,8 +242,6 @@ namespace Tubumu.Modules.Admin.Entities
                 entity.HasIndex(e => e.Username)
                     .IsUnique();
 
-                entity.Property(e => e.ClientAgent).HasMaxLength(100);
-
                 entity.Property(e => e.Description).HasMaxLength(4000);
 
                 entity.Property(e => e.DisplayName).HasMaxLength(20);
@@ -265,8 +263,6 @@ namespace Tubumu.Modules.Admin.Entities
                 entity.Property(e => e.RowVersion)
                     .IsRequired()
                     .IsRowVersion();
-
-                entity.Property(e => e.Token).HasMaxLength(50);
 
                 entity.Property(e => e.Username)
                     .IsRequired()

@@ -51,7 +51,6 @@ namespace Tubumu.Modules.Admin.Repositories
                 Mobile = u.Mobile,
                 MobileIsValid = u.MobileIsValid,
                 Password = u.Password,
-                Token = u.Token,
                 WeixinMobileOpenId = u.WeixinMobileOpenId,
                 WeixinAppOpenId = u.WeixinAppOpenId,
                 WeixinWebOpenId = u.WeixinWebOpenId,

@@ -22,7 +22,6 @@ namespace Tubumu.Modules.Admin.Controllers
     [Route("api/[controller]/[action]")]
     [ApiController]
     [IgnoreAntiforgeryToken]
-    [EnableCors("DefaultPolicy")]
     public partial class BasicDataController : ControllerBase
     {
         private readonly IRegionService _regionService;
